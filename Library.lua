@@ -930,41 +930,43 @@ local function New(ClassName: string, Properties: { [string]: any }): any
 end
 
 --// Main Instances \\-
-local function SafeParentUI(Instance: Instance, Parent: Instance | () -> Instance)
-    if
-        not pcall(function()
-            if not Parent then
-                Parent = CoreGui
-            end
-
-            local DestinationParent
-            if typeof(Parent) == "function" then
-                DestinationParent = Parent()
+local function SafeParentUI(instance: Instance, parent: Instance | (() -> Instance)?)
+    task.defer(function()
+        local success, result = pcall(function()
+            local target
+            if typeof(parent) == "function" then
+                target = parent()
+            elseif typeof(parent) == "Instance" then
+                target = parent
             else
-                DestinationParent = Parent
+                target = Players.LocalPlayer:FindFirstChild("PlayerGui")
             end
 
-            Instance.Parent = DestinationParent
+            if target and target:IsA("Instance") then
+                instance.Parent = target
+            else
+                instance.Parent = Players.LocalPlayer:WaitForChild("PlayerGui", 5)
+            end
         end)
-    then
-        Instance.Parent = Library.LocalPlayer:WaitForChild("PlayerGui", math.huge)
-    end
+
+        if not success then
+            instance.Parent = Players.LocalPlayer:WaitForChild("PlayerGui", 5)
+        end
+    end)
 end
 
-local function ParentUI(UI: Instance, SkipHiddenUI: boolean?)
-    if SkipHiddenUI then
-        SafeParentUI(UI, CoreGui)
-        return
-    end
 
-    pcall(protectgui, UI)
-
-    SafeParentUI(UI, gethui)
+local function ParentUI(UI: Instance, _)
+    -- Always defer and prefer PlayerGui unless protected
+    SafeParentUI(UI, function()
+        return Players.LocalPlayer:FindFirstChild("PlayerGui") or CoreGui
+    end)
 end
+
 
 local ScreenGui = New("ScreenGui", {
     Name = "ui",
-    DisplayOrder = 999,
+    DisplayOrder = 0,
     ResetOnSpawn = false,
 })
 ParentUI(ScreenGui)
@@ -976,7 +978,7 @@ end)
 
 local ModalScreenGui = New("ScreenGui", {
     Name = "inventory",
-    DisplayOrder = 999,
+    DisplayOrder = 0,
     ResetOnSpawn = false,
 })
 ParentUI(ModalScreenGui, true)
