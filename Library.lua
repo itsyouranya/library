@@ -965,7 +965,7 @@ end
 
 
 local ScreenGui = New("ScreenGui", {
-    Name = "ui",
+    Name = "FirstUI",
     DisplayOrder = 0,
     ResetOnSpawn = false,
 })
@@ -977,7 +977,7 @@ ScreenGui.DescendantRemoving:Connect(function(Instance)
 end)
 
 local ModalScreenGui = New("ScreenGui", {
-    Name = "inventory",
+    Name = "SecondUI",
     DisplayOrder = 0,
     ResetOnSpawn = false,
 })
