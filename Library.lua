@@ -975,7 +975,7 @@ ScreenGui.DescendantRemoving:Connect(function(Instance)
 end)
 
 local ModalScreenGui = New("ScreenGui", {
-    Name = "ObsidanModal",
+    Name = "inventory",
     DisplayOrder = 999,
     ResetOnSpawn = false,
 })
