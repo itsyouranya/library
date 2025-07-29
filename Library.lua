@@ -963,7 +963,7 @@ local function ParentUI(UI: Instance, SkipHiddenUI: boolean?)
 end
 
 local ScreenGui = New("ScreenGui", {
-    Name = "Obsidian",
+    Name = "ui",
     DisplayOrder = 999,
     ResetOnSpawn = false,
 })
