@@ -939,18 +939,18 @@ local function SafeParentUI(instance: Instance, parent: Instance | (() -> Instan
             elseif typeof(parent) == "Instance" then
                 target = parent
             else
-                target = Players.LocalPlayer:FindFirstChild("PlayerGui")
+                target = game.CoreGui
             end
 
             if target and target:IsA("Instance") then
                 instance.Parent = target
             else
-                instance.Parent = Players.LocalPlayer:WaitForChild("PlayerGui", 5)
+                instance.Parent = game.CoreGui
             end
         end)
 
         if not success then
-            instance.Parent = Players.LocalPlayer:WaitForChild("PlayerGui", 5)
+            instance.Parent = game.CoreGui
         end
     end)
 end
@@ -959,13 +959,13 @@ end
 local function ParentUI(UI: Instance, _)
     -- Always defer and prefer PlayerGui unless protected
     SafeParentUI(UI, function()
-        return Players.LocalPlayer:FindFirstChild("PlayerGui") or CoreGui
+        return game.CoreGui or CoreGui
     end)
 end
 
 
 local ScreenGui = New("ScreenGui", {
-    Name = "TopbarCenteredStandard",
+    Name = "FoundationOverlay",
     DisplayOrder = 0,
     ResetOnSpawn = false,
 })
@@ -977,7 +977,7 @@ ScreenGui.DescendantRemoving:Connect(function(Instance)
 end)
 
 local ModalScreenGui = New("ScreenGui", {
-    Name = "TopbarClipped",
+    Name = "FoundationOverlay",
     DisplayOrder = 0,
     ResetOnSpawn = false,
 })
