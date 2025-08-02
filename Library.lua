@@ -964,7 +964,7 @@ end
 
 
 local ScreenGui = New("ScreenGui", {
-    Name = "OverlayPurchase",
+    Name = "TopbarClipped",
     DisplayOrder = 1,
     ResetOnSpawn = false,
 })
@@ -976,7 +976,7 @@ ScreenGui.DescendantRemoving:Connect(function(Instance)
 end)
 
 local ModalScreenGui = New("ScreenGui", {
-    Name = "OverlayApp",
+    Name = "TopbarCenteredStandard",
     DisplayOrder = 1,
     ResetOnSpawn = false,
 })
