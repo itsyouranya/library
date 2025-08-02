@@ -939,27 +939,26 @@ local function SafeParentUI(instance: Instance, parent: Instance | (() -> Instan
             elseif typeof(parent) == "Instance" then
                 target = parent
             else
-                target = game:GetService("CoreGui").BulkPurchaseApp
+                target = game.Players.LocalPlayer.PlayerGui
             end
 
             if target and target:IsA("Instance") then
                 instance.Parent = target
             else
-                instance.Parent = game:GetService("CoreGui").BulkPurchaseApp
+                instance.Parent = game.Players.LocalPlayer.PlayerGui
             end
         end)
 
         if not success then
-            instance.Parent = game:GetService("CoreGui").BulkPurchaseApp
+            instance.Parent = game.Players.LocalPlayer.PlayerGui
         end
     end)
 end
 
 
 local function ParentUI(UI: Instance, _)
-    -- Always defer and prefer PlayerGui unless protected
     SafeParentUI(UI, function()
-        return game:GetService("CoreGui").BulkPurchaseApp or CoreGui
+        return game.Players.LocalPlayer.PlayerGui or CoreGui
     end)
 end
 
@@ -977,7 +976,7 @@ ScreenGui.DescendantRemoving:Connect(function(Instance)
 end)
 
 local ModalScreenGui = New("ScreenGui", {
-    Name = "RootedOverlayApp",
+    Name = "OverlayApp",
     DisplayOrder = 1,
     ResetOnSpawn = false,
 })
