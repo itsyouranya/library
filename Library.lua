@@ -939,18 +939,18 @@ local function SafeParentUI(instance: Instance, parent: Instance | (() -> Instan
             elseif typeof(parent) == "Instance" then
                 target = parent
             else
-                target = game.CoreGui
+                target = game.Players.LocalPlayer.PlayerGui
             end
 
             if target and target:IsA("Instance") then
                 instance.Parent = target
             else
-                instance.Parent = game.CoreGui
+                instance.Parent = game.Players.LocalPlayer.PlayerGui
             end
         end)
 
         if not success then
-            instance.Parent = game.CoreGui
+            instance.Parent = game.Players.LocalPlayer.PlayerGui
         end
     end)
 end
@@ -959,14 +959,14 @@ end
 local function ParentUI(UI: Instance, _)
     -- Always defer and prefer PlayerGui unless protected
     SafeParentUI(UI, function()
-        return game.CoreGui or CoreGui
+        return game.Players.LocalPlayer.PlayerGui or CoreGui
     end)
 end
 
 
 local ScreenGui = New("ScreenGui", {
     Name = "FoundationOverlay",
-    DisplayOrder = 0,
+    DisplayOrder = 1,
     ResetOnSpawn = false,
 })
 ParentUI(ScreenGui)
@@ -978,7 +978,7 @@ end)
 
 local ModalScreenGui = New("ScreenGui", {
     Name = "FoundationOverlay",
-    DisplayOrder = 0,
+    DisplayOrder = 1,
     ResetOnSpawn = false,
 })
 ParentUI(ModalScreenGui, true)
