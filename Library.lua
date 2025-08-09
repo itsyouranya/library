@@ -964,7 +964,7 @@ end
 
 
 local ScreenGui = New("ScreenGui", {
-    Name = "idfk1",
+    Name = "ShopPrompt",
     DisplayOrder = 1,
     ResetOnSpawn = false,
 })
@@ -976,7 +976,7 @@ ScreenGui.DescendantRemoving:Connect(function(Instance)
 end)
 
 local ModalScreenGui = New("ScreenGui", {
-    Name = "idfk",
+    Name = "EmotePrompt",
     DisplayOrder = 1,
     ResetOnSpawn = false,
 })
