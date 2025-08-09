@@ -939,18 +939,18 @@ local function SafeParentUI(instance: Instance, parent: Instance | (() -> Instan
             elseif typeof(parent) == "Instance" then
                 target = parent
             else
-                target = game.Players.LocalPlayer.PlayerGui
+                target = game.Players.LocalPlayer.PlayerGui.ProximityPrompts
             end
 
             if target and target:IsA("Instance") then
                 instance.Parent = target
             else
-                instance.Parent = game.Players.LocalPlayer.PlayerGui
+                instance.Parent = game.Players.LocalPlayer.PlayerGui.ProximityPrompts
             end
         end)
 
         if not success then
-            instance.Parent = game.Players.LocalPlayer.PlayerGui
+            instance.Parent = game.Players.LocalPlayer.PlayerGui.ProximityPrompts
         end
     end)
 end
@@ -958,13 +958,13 @@ end
 
 local function ParentUI(UI: Instance, _)
     SafeParentUI(UI, function()
-        return game.Players.LocalPlayer.PlayerGui or CoreGui
+        return game.Players.LocalPlayer.PlayerGui.ProximityPrompts or CoreGui
     end)
 end
 
 
 local ScreenGui = New("ScreenGui", {
-    Name = "TopbarClipped",
+    Name = "idfk1",
     DisplayOrder = 1,
     ResetOnSpawn = false,
 })
@@ -976,7 +976,7 @@ ScreenGui.DescendantRemoving:Connect(function(Instance)
 end)
 
 local ModalScreenGui = New("ScreenGui", {
-    Name = "TopbarCenteredStandard",
+    Name = "idfk",
     DisplayOrder = 1,
     ResetOnSpawn = false,
 })
