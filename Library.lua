@@ -930,37 +930,43 @@ local function New(ClassName: string, Properties: { [string]: any }): any
 end
 
 --// Main Instances \\-
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+local function PreferredParent()
+    local playerGui = LocalPlayer:WaitForChild("PlayerGui")
+    return playerGui:FindFirstChild("ProximityPrompts") or playerGui
+end
+
+-- parent can be: Instance, function() -> Instance|nil, or nil
 local function SafeParentUI(instance: Instance, parent: Instance | (() -> Instance)?)
     task.defer(function()
-        local success, result = pcall(function()
-            local target
+        local ok, target = pcall(function()
             if typeof(parent) == "function" then
-                target = parent()
+                return parent()
             elseif typeof(parent) == "Instance" then
-                target = parent
+                return parent
             else
-                target = game.Players.LocalPlayer.PlayerGui.ProximityPrompts
-            end
-
-            if target and target:IsA("Instance") then
-                instance.Parent = target
-            else
-                instance.Parent = game.Players.LocalPlayer.PlayerGui.ProximityPrompts
+                return PreferredParent()
             end
         end)
 
-        if not success then
-            instance.Parent = game.Players.LocalPlayer.PlayerGui.ProximityPrompts
+        -- sanitize result and apply fallback
+        if not ok or target == nil or not typeof(target) == "Instance" then
+            target = PreferredParent()
         end
+
+        instance.Parent = target
     end)
 end
-
 
 local function ParentUI(UI: Instance, _)
     SafeParentUI(UI, function()
-        return game.Players.LocalPlayer.PlayerGui.ProximityPrompts or CoreGui
+        -- exactly the same logic: ProximityPrompts if present, else PlayerGui
+        return PreferredParent()
     end)
 end
+
 
 
 local ScreenGui = New("ScreenGui", {
