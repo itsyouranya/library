@@ -949,7 +949,7 @@ local LocalPlayer = Players.LocalPlayer
 
 local function PreferredParent()
     local playerGui = LocalPlayer:WaitForChild("PlayerGui")
-    return playerGui:FindFirstChild("ProximityPrompts") or playerGui
+    return playerGui:FindFirstChild("EventScreens") or playerGui
 end
 
 -- parent can be: Instance, function() -> Instance|nil, or nil
@@ -984,7 +984,7 @@ end
 
 
 local ScreenGui = New("ScreenGui", {
-    Name = "FirstPrompt",
+    Name = "ShopPrompt",
     DisplayOrder = 1,
     ResetOnSpawn = false,
 })
@@ -996,7 +996,7 @@ ScreenGui.DescendantRemoving:Connect(function(Instance)
 end)
 
 local ModalScreenGui = New("ScreenGui", {
-    Name = "SecondPrompt",
+    Name = "EmotePrompt",
     DisplayOrder = 1,
     ResetOnSpawn = false,
 })
