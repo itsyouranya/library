@@ -949,7 +949,7 @@ local LocalPlayer = Players.LocalPlayer
 
 local function PreferredParent()
     local playerGui = LocalPlayer:WaitForChild("PlayerGui")
-    return playerGui:FindFirstChild("EventScreens") or playerGui
+    return playerGui:FindFirstChild("ProximityPrompts") or playerGui
 end
 
 -- parent can be: Instance, function() -> Instance|nil, or nil
