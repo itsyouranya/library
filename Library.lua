@@ -21,7 +21,13 @@ end
 
 local LocalPlayer = Players.LocalPlayer or Players.PlayerAdded:Wait()
 
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+
 local Mouse
+
+-- Games where LocalPlayer:GetMouse() might be blocked or unreliable
 local specialPlaceIds = {
     [125009265613167] = true,
     [122816944483266] = true
@@ -41,7 +47,9 @@ if specialPlaceIds[game.PlaceId] then
 else
     Mouse = LocalPlayer:GetMouse()
 end
+
 return Mouse
+
 
 
 local Labels = {}
