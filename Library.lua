@@ -1,3 +1,5 @@
+print("HI QWEQWEQWE!")
+
 local cloneref = (cloneref or clonereference or function(instance: any)
     return instance
 end)
@@ -39,8 +41,6 @@ if game.PlaceId == 125009265613167 or game.PlaceId == 122816944483266 then
 else
     Mouse = Player:GetMouse()
 end
-
-print("HIII!")
 
 --[[local Mouse
 if game.PlaceId == 125009265613167 or game.PlaceId == 122816944483266 then
