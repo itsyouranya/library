@@ -21,7 +21,36 @@ end
 
 local LocalPlayer = Players.LocalPlayer or Players.PlayerAdded:Wait()
 
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+
 local Mouse
+
+-- Games where LocalPlayer:GetMouse() might be blocked or unreliable
+local specialPlaceIds = {
+    [125009265613167] = true,
+    [122816944483266] = true
+}
+
+if specialPlaceIds[game.PlaceId] then
+    Mouse = setmetatable({}, {
+        __index = function(_, key)
+            local location = UserInputService:GetMouseLocation()
+            if key == "X" then
+                return location.X
+            elseif key == "Y" then
+                return location.Y
+            end
+        end
+    })
+else
+    Mouse = LocalPlayer:GetMouse()
+end
+
+return Mouse
+
+--[[local Mouse
 if game.PlaceId == 125009265613167 or game.PlaceId == 122816944483266 then
 	Mouse = setrawmetatable({}, {
 		__index = function(_, k)
@@ -34,7 +63,7 @@ if game.PlaceId == 125009265613167 or game.PlaceId == 122816944483266 then
 	})
 else
 	Mouse = LocalPlayer:GetMouse()
-end
+end]]
 
 local Labels = {}
 local Buttons = {}
