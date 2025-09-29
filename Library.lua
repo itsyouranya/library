@@ -49,6 +49,7 @@ else
 end
 
 return Mouse
+print("HIII!")
 
 --[[local Mouse
 if game.PlaceId == 125009265613167 or game.PlaceId == 122816944483266 then
