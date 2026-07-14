@@ -4118,6 +4118,15 @@ local Library = {
                 Callback = Params.Callback or Params.callback or function() end,
                 Multi = Params.Multi or Params.multi or false,
 
+                Search = Params.Search ~= false,
+                Selectable = Params.Selectable ~= false,
+                Alignment = Params.Alignment or Enum.TextXAlignment.Center,
+                TextWrapped = Params.TextWrapped or false,
+                TextYAlignment = Params.TextYAlignment or Enum.TextYAlignment.Center,
+                Padding = Params.Padding or 8,
+                ItemPadding = Params.ItemPadding or 0,
+                TextTheme = Params.TextTheme,
+
                 Window = Self.Window,
                 Page = Self.Page,
                 Section = Self,
@@ -4127,15 +4136,19 @@ local Library = {
                 Items = { }
             }
 
-            local Parent 
+            if not List.TextTheme then
+                List.TextTheme = List.Selectable and "Inactive Text" or "Text"
+            end
 
-            if Params.Parent then 
+            local Parent
+
+            if Params.Parent then
                 Parent = Params.Parent
             else
                 Parent = List.Section.Items["Content"]
             end
 
-            local Items = { } do 
+            local Items = { } do
                 Items["List"] = Library:Create("Frame", {
                     Name = "\0",
                     Parent = Parent.Instance,
@@ -4143,17 +4156,18 @@ local Library = {
                     Size = UDim2.new(1, 0, 0, Params.Height or Params.height or 200),
                     BorderSizePixel = 0
                 })
-                
+
                 Items["SearchOutline"] = Library:Create("Frame", {
                     Name = "\0",
                     Parent = Items["List"].Instance,
                     Size = UDim2.new(1, 0, 0, 20),
                     Active = true,
                     Selectable = true,
+                    Visible = List.Search,
                     BorderSizePixel = 0,
                     BackgroundColor3 = Library.Theme["Border"]
                 }):AddToTheme({BackgroundColor3 = 'Border'})
-                
+
                 Items["SearchInline"] = Library:Create("Frame", {
                     Name = "\0",
                     Parent = Items["SearchOutline"].Instance,
@@ -4164,7 +4178,7 @@ local Library = {
                     BorderSizePixel = 0,
                     BackgroundColor3 = Library.Theme["Outline"]
                 }):AddToTheme({BackgroundColor3 = 'Outline'})
-                
+
                 Items["SearchBackground"] = Library:Create("Frame", {
                     Name = "\0",
                     Parent = Items["SearchInline"].Instance,
@@ -4176,17 +4190,17 @@ local Library = {
                     BorderSizePixel = 0,
                     BackgroundColor3 = Library.Theme["Element"]
                 }):AddToTheme({BackgroundColor3 = 'Element'})
-                
+
                 Library:Create("UIGradient", {
                     Name = "\0",
                     Parent = Items["SearchBackground"].Instance,
                     Rotation = 90,
                     Color = ColorSequence.new{
-                    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
-                    ColorSequenceKeypoint.new(1, Color3.fromRGB(163, 163, 163))
-                }
+                        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+                        ColorSequenceKeypoint.new(1, Color3.fromRGB(163, 163, 163))
+                    }
                 })
-                
+
                 Items["Input"] = Library:Create("TextBox", {
                     Name = "\0",
                     FontFace = Library.Font,
@@ -4205,16 +4219,16 @@ local Library = {
                     ClearTextOnFocus = false,
                     AutomaticSize = Enum.AutomaticSize.Y
                 }):AddToTheme({TextColor3 = 'Text', PlaceholderColor3 = 'Inactive Text'})
-                
+
                 Items["ListOutline"] = Library:Create("Frame", {
                     Name = "\0",
                     Parent = Items["List"].Instance,
-                    Position = UDim2.new(0, 0, 0, 25),
-                    Size = UDim2.new(1, 0, 1, -25),
+                    Position = List.Search and UDim2.new(0, 0, 0, 25) or UDim2.new(0, 0, 0, 0),
+                    Size = List.Search and UDim2.new(1, 0, 1, -25) or UDim2.new(1, 0, 1, 0),
                     BorderSizePixel = 0,
                     BackgroundColor3 = Library.Theme["Border"]
                 }):AddToTheme({BackgroundColor3 = 'Border'})
-                
+
                 Items["ListInline"] = Library:Create("Frame", {
                     Name = "\0",
                     Parent = Items["ListOutline"].Instance,
@@ -4223,7 +4237,7 @@ local Library = {
                     BorderSizePixel = 0,
                     BackgroundColor3 = Library.Theme["Outline"]
                 }):AddToTheme({BackgroundColor3 = 'Outline'})
-                
+
                 Items["ListBackground"] = Library:Create("Frame", {
                     Name = "\0",
                     Parent = Items["ListInline"].Instance,
@@ -4232,17 +4246,17 @@ local Library = {
                     BorderSizePixel = 0,
                     BackgroundColor3 = Library.Theme["Element"]
                 }):AddToTheme({BackgroundColor3 = 'Element'})
-                
+
                 Library:Create("UIGradient", {
                     Name = "\0",
                     Parent = Items["ListBackground"].Instance,
                     Rotation = 90,
                     Color = ColorSequence.new{
-                    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
-                    ColorSequenceKeypoint.new(1, Color3.fromRGB(163, 163, 163))
-                }
+                        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+                        ColorSequenceKeypoint.new(1, Color3.fromRGB(163, 163, 163))
+                    }
                 })
-                
+
                 Items["Holder"] = Library:Create("ScrollingFrame", {
                     Name = "\0",
                     Parent = Items["ListBackground"].Instance,
@@ -4259,26 +4273,30 @@ local Library = {
                     BottomImage = "rbxassetid://81680855285439",
                     TopImage = "rbxassetid://81680855285439"
                 }):AddToTheme({ScrollBarImageColor3 = 'Accent'})
-                
+
                 Library:Create("UIListLayout", {
                     Name = "\0",
                     Parent = Items["Holder"].Instance,
-                    Padding = UDim.new(0, 8),
+                    Padding = UDim.new(0, List.Padding),
                     SortOrder = Enum.SortOrder.LayoutOrder
                 })
-                
+
                 Library:Create("UIPadding", {
                     Name = "\0",
                     Parent = Items["Holder"].Instance,
                     PaddingBottom = UDim.new(0, 8)
-                })                
+                })
 
-                List.Items = Items 
+                List.Items = Items
             end
 
             function List:Set(Value)
-                if List.Multi then 
-                    if type(Value) ~= "table" then 
+                if not List.Selectable then
+                    return
+                end
+
+                if List.Multi then
+                    if type(Value) ~= "table" then
                         return
                     end
 
@@ -4286,12 +4304,12 @@ local Library = {
 
                     for Index, Value in Value do
                         local OptionData = List.Options[Value]
-                         
+
                         if not OptionData then
                             continue
                         end
 
-                        OptionData.IsSelected = true 
+                        OptionData.IsSelected = true
                         OptionData:ToggleState("Active")
                     end
 
@@ -4307,10 +4325,10 @@ local Library = {
 
                     for Index, Value in List.Options do
                         if Value ~= OptionData then
-                            Value.IsSelected = false 
+                            Value.IsSelected = false
                             Value:ToggleState("Inactive")
                         else
-                            Value.IsSelected = true 
+                            Value.IsSelected = true
                             Value:ToggleState("Active")
                         end
                     end
@@ -4326,34 +4344,51 @@ local Library = {
                     Name = "\0",
                     FontFace = Library.Font,
                     TextSize = Library.FontSize,
-                    TextXAlignment = Enum.TextXAlignment.Center,
+                    TextXAlignment = List.Alignment,
+                    TextYAlignment = List.TextYAlignment,
+                    TextWrapped = List.TextWrapped,
                     Parent = Items["Holder"].Instance,
-                    TextColor3 = Library.Theme["Inactive Text"],
+                    TextColor3 = Library.Theme[List.TextTheme],
                     Text = Value,
                     AutoButtonColor = false,
-                    Size = UDim2.new(1, 0, 0, 0),
+                    Size = UDim2.new(1, -List.ItemPadding, 0, 0),
                     BackgroundTransparency = 1,
                     BorderSizePixel = 0,
                     AutomaticSize = Enum.AutomaticSize.Y
-                }):AddToTheme({TextColor3 = 'Inactive Text'})
+                }):AddToTheme({TextColor3 = List.TextTheme})
+
+                local Key = Value
+                local DuplicateIndex = 1
+
+                while List.Options[Key] do
+                    DuplicateIndex += 1
+                    Key = Value .. string.rep("\0", DuplicateIndex - 1)
+                end
 
                 local OptionData = {
                     Button = OptionButton,
                     Name = Value,
+                    Key = Key,
                     IsSelected = false
                 }
 
-                OptionButton:OnHover(function()
-                    if OptionData.IsSelected then return end 
+                if List.Selectable then
+                    OptionButton:OnHover(function()
+                        if OptionData.IsSelected then return end
 
-                    OptionButton:Tween({TextColor3 = Library.Theme.Text})
-                end, function()
-                    if OptionData.IsSelected then return end 
+                        OptionButton:Tween({TextColor3 = Library.Theme.Text})
+                    end, function()
+                        if OptionData.IsSelected then return end
 
-                    OptionButton:Tween({TextColor3 = Library.Theme["Inactive Text"]})
-                end)
-                
+                        OptionButton:Tween({TextColor3 = Library.Theme["Inactive Text"]})
+                    end)
+                end
+
                 function OptionData:ToggleState(Value)
+                    if not List.Selectable then
+                        return
+                    end
+
                     if Value == "Active" then
                         OptionButton:ChangeItemTheme({TextColor3 = "Accent"})
                         OptionButton:Tween({TextColor3 = Library.Theme.Accent})
@@ -4364,12 +4399,16 @@ local Library = {
                 end
 
                 function OptionData:Set()
+                    if not List.Selectable then
+                        return
+                    end
+
                     OptionData.IsSelected = not OptionData.IsSelected
 
-                    if List.Multi then 
+                    if List.Multi then
                         local Index = table.find(List.Value, OptionData.Name)
 
-                        if Index then 
+                        if Index then
                             table.remove(List.Value, Index)
                         else
                             table.insert(List.Value, OptionData.Name)
@@ -4379,16 +4418,16 @@ local Library = {
 
                         Flags[List.Flag] = List.Value
                     else
-                        if OptionData.IsSelected then 
+                        if OptionData.IsSelected then
                             List.Value = OptionData.Name
                             Flags[List.Flag] = OptionData.Name
 
                             OptionData.IsSelected = true
                             OptionData:ToggleState("Active")
 
-                            for Index, Value in List.Options do 
+                            for Index, Value in List.Options do
                                 if Value ~= OptionData then
-                                    Value.IsSelected = false 
+                                    Value.IsSelected = false
                                     Value:ToggleState("Inactive")
                                 end
                             end
@@ -4404,55 +4443,77 @@ local Library = {
                     Library:SafeCall(List.Callback, List.Value)
                 end
 
-                OptionData.Button:Connect("MouseButton1Down", function()
-                    OptionData:Set()
-                end)
+                if List.Selectable then
+                    OptionData.Button:Connect("MouseButton1Down", function()
+                        OptionData:Set()
+                    end)
+                end
 
-                List.Options[OptionData.Name] = OptionData
+                List.Options[OptionData.Key] = OptionData
                 return OptionData
             end
 
             function List:Remove(Option)
-                if List.Options[Option] then
-                    List.Options[Option].Button.Instance:Destroy()
+                local OptionData = List.Options[Option]
+
+                if not OptionData then
+                    for Key, Value in List.Options do
+                        if Value.Name == Option then
+                            OptionData = Value
+                            Option = Key
+                            break
+                        end
+                    end
+                end
+
+                if OptionData then
+                    OptionData.Button.Instance:Destroy()
                     List.Options[Option] = nil
                 end
             end
 
             function List:Refresh(NewList)
-                for Index, Value in List.Options do 
-                    List:Remove(Value.Name)
+                for Key, Value in List.Options do
+                    Value.Button.Instance:Destroy()
+                    List.Options[Key] = nil
                 end
 
-                for Index, Value in NewList do 
+                for Index, Value in NewList do
                     List:Add(Value)
                 end
             end
 
             function List:SetVisibility(Bool)
-                Items["List"].Instance.Visible = Bool 
+                Items["List"].Instance.Visible = Bool
             end
 
-            for Index, Value in List.OptionItems do 
+            for Index, Value in List.OptionItems do
                 List:Add(Value)
             end
 
-            Items["Input"]:Connect("Changed", function(Property)
-                if Property == "Text" then
-                    for Index, Value in List.Options do
-                        if string.find(string.lower(Value.Name), string.lower(Items["Input"].Instance.Text)) then
-                            Value.Button.Instance.Visible = true
-                        else
-                            Value.Button.Instance.Visible = false
+            if List.Search then
+                Items["Input"]:Connect("Changed", function(Property)
+                    if Property == "Text" then
+                        local SearchText = string.lower(Items["Input"].Instance.Text)
+
+                        for Index, Value in List.Options do
+                            Value.Button.Instance.Visible = string.find(
+                                string.lower(Value.Name),
+                                SearchText,
+                                1,
+                                true
+                            ) ~= nil
                         end
                     end
+                end)
+            end
+
+            if List.Selectable then
+                List:Set(List.Default)
+
+                SetFlags[List.Flag] = function(Value)
+                    List:Set(Value)
                 end
-            end)
-
-            List:Set(List.Default)
-
-            SetFlags[List.Flag] = function(Value)
-                List:Set(Value)
             end
 
             return setmetatable(List, Library)
