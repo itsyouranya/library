@@ -2924,20 +2924,24 @@ local Library = {
                 })
                 
                 Items["LeftColumn"] = Library:Create("ScrollingFrame", {
-                    Name = "\0",
+                    Name = " ",
                     Parent = Items["Page"].Instance,
-                    ScrollBarImageColor3 = Color3.fromRGB(0, 0, 0),
+                    ScrollBarImageColor3 = Library.Theme["Accent"],
                     Active = true,
+                    ScrollingEnabled = true,
                     AutomaticCanvasSize = Enum.AutomaticSize.Y,
                     ScrollBarThickness = 0,
                     BackgroundTransparency = 1,
                     Size = UDim2.new(0, 100, 0, 100),
                     BorderSizePixel = 0,
-                    CanvasSize = UDim2.new(0, 0, 0, 0)
-                })
-                
-                Library:Create("UIListLayout", {
-                    Name = "\0",
+                    CanvasSize = UDim2.new(0, 0, 0, 0),
+                    BottomImage = "rbxassetid://81680855285439",
+                    MidImage = "rbxassetid://81680855285439",
+                    TopImage = "rbxassetid://81680855285439"
+                }):AddToTheme({ScrollBarImageColor3 = "Accent"})
+
+                Items["LeftLayout"] = Library:Create("UIListLayout", {
+                    Name = " ",
                     Parent = Items["LeftColumn"].Instance,
                     Padding = UDim.new(0, 15),
                     SortOrder = Enum.SortOrder.LayoutOrder
@@ -2953,20 +2957,24 @@ local Library = {
                 })                
 
                 Items["RightColumn"] = Library:Create("ScrollingFrame", {
-                    Name = "\0",
+                    Name = " ",
                     Parent = Items["Page"].Instance,
-                    ScrollBarImageColor3 = Color3.fromRGB(0, 0, 0),
+                    ScrollBarImageColor3 = Library.Theme["Accent"],
                     Active = true,
+                    ScrollingEnabled = true,
                     AutomaticCanvasSize = Enum.AutomaticSize.Y,
                     ScrollBarThickness = 0,
                     BackgroundTransparency = 1,
                     Size = UDim2.new(0, 100, 0, 100),
                     BorderSizePixel = 0,
-                    CanvasSize = UDim2.new(0, 0, 0, 0)
-                })
-                
-                Library:Create("UIListLayout", {
-                    Name = "\0",
+                    CanvasSize = UDim2.new(0, 0, 0, 0),
+                    BottomImage = "rbxassetid://81680855285439",
+                    MidImage = "rbxassetid://81680855285439",
+                    TopImage = "rbxassetid://81680855285439"
+                }):AddToTheme({ScrollBarImageColor3 = "Accent"})
+
+                Items["RightLayout"] = Library:Create("UIListLayout", {
+                    Name = " ",
                     Parent = Items["RightColumn"].Instance,
                     Padding = UDim.new(0, 15),
                     SortOrder = Enum.SortOrder.LayoutOrder
@@ -2993,6 +3001,10 @@ local Library = {
                 end
 
                 local function HookColumnScrollbar(Column, Layout)
+                    if not Column or not Column.Instance or not Layout or not Layout.Instance then
+                        return
+                    end
+
                     local function Update()
                         task.defer(UpdateColumnScrollbar, Column, Layout)
                     end
