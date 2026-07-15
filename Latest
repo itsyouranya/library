@@ -2752,14 +2752,31 @@ local Library = {
             local WaveSpacing = 0.25
 
             local Letters = { } -- try not to make the title too long since every letter is created individually for the animation
+            local VisualIndex = 0
 
-            for Index = 1, #Window.Name do 
-                local Letter = Window.Name:sub(Index, Index)
+            for StartByte, EndByte in utf8.graphemes(Window.Name) do
+                VisualIndex += 1
+
+                local Letter = Window.Name:sub(StartByte, EndByte)
+                local LetterWidth = Width
+
+                if utf8.len(Letter) and utf8.len(Letter) > 1 then
+                    LetterWidth = Width * 2
+                elseif string.byte(Letter, 1) and string.byte(Letter, 1) >= 128 then
+                    LetterWidth = Width * 2
+                end
+
+                local PreviousX = OffsetX
+
+                if VisualIndex > 1 then
+                    local Previous = Letters[VisualIndex - 1]
+                    PreviousX = Previous.X + Previous.Width
+                end
 
                 local NewLetter = Library:Create("TextLabel",{
                     Name = "\0",
-                    Size = UDim2.new(0, Width, 0, 0),
-                    Position = UDim2.new(0, OffsetX + ((Index - 1) * Width), 0, OffsetY),
+                    Size = UDim2.new(0, LetterWidth, 0, 0),
+                    Position = UDim2.new(0, PreviousX, 0, OffsetY),
                     BackgroundTransparency = 1,
                     BorderSizePixel = 0,
                     Text = Letter,
@@ -2768,10 +2785,11 @@ local Library = {
                     Parent = Items["Background"].Instance
                 }):AddToTheme({TextColor3 = 'Accent'})
 
-                Letters[Index] = {
+                Letters[VisualIndex] = {
                     LetterInstance = NewLetter,
-                    X = OffsetX + ((Index - 1) * Width),
-                    Y = OffsetY
+                    X = PreviousX,
+                    Y = OffsetY,
+                    Width = LetterWidth
                 }
             end
 
@@ -5027,6 +5045,215 @@ local Library = {
             end
         end
     end
+end
+
+
+--==================================================
+-- STANDALONE VIEWPORT WINDOW
+--==================================================
+
+Library.ViewportWindow = function(Self, Params)
+    Params = Params or {}
+
+    local ViewportWindow = {
+        Name = Params.Name or Params.name or "Viewer",
+        Size = Params.Size or Params.size or UDim2.fromOffset(300, 330),
+        Position = Params.Position or Params.position or UDim2.new(1, -325, 0.5, -165),
+        Visible = Params.Visible == true,
+        Items = {}
+    }
+
+    local Items = ViewportWindow.Items
+
+    Items["Outline"] = Library:Create("Frame", {
+        Name = "\0",
+        Parent = Library.Holder.Instance,
+        Position = ViewportWindow.Position,
+        Size = ViewportWindow.Size,
+        BorderSizePixel = 0,
+        Visible = ViewportWindow.Visible,
+        BackgroundColor3 = Library.Theme["Border"]
+    }):AddToTheme({BackgroundColor3 = "Border"})
+
+    Items["Inline"] = Library:Create("Frame", {
+        Name = "\0",
+        Parent = Items["Outline"].Instance,
+        Position = UDim2.fromOffset(1, 1),
+        Size = UDim2.new(1, -2, 1, -2),
+        BorderSizePixel = 0,
+        BackgroundColor3 = Library.Theme["Outline"]
+    }):AddToTheme({BackgroundColor3 = "Outline"})
+
+    Items["Background"] = Library:Create("Frame", {
+        Name = "\0",
+        Parent = Items["Inline"].Instance,
+        Position = UDim2.fromOffset(1, 1),
+        Size = UDim2.new(1, -2, 1, -2),
+        BorderSizePixel = 0,
+        BackgroundColor3 = Library.Theme["Background"]
+    }):AddToTheme({BackgroundColor3 = "Background"})
+
+    Items["TitleBar"] = Library:Create("TextButton", {
+        Name = "\0",
+        Parent = Items["Background"].Instance,
+        Size = UDim2.new(1, 0, 0, 30),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        AutoButtonColor = false,
+        Text = ""
+    })
+
+    Items["Title"] = Library:Create("TextLabel", {
+        Name = "\0",
+        Parent = Items["TitleBar"].Instance,
+        Position = UDim2.fromOffset(8, 0),
+        Size = UDim2.new(1, -38, 1, 0),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        FontFace = Library.Font,
+        TextSize = Library.FontSize,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextColor3 = Library.Theme["Text"],
+        Text = ViewportWindow.Name
+    }):AddToTheme({TextColor3 = "Text"})
+
+    Items["Close"] = Library:Create("TextButton", {
+        Name = "\0",
+        Parent = Items["TitleBar"].Instance,
+        Position = UDim2.new(1, -28, 0, 3),
+        Size = UDim2.fromOffset(24, 24),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        AutoButtonColor = false,
+        FontFace = Library.Font,
+        TextSize = Library.FontSize,
+        TextColor3 = Library.Theme["Inactive Text"],
+        Text = "×"
+    }):AddToTheme({TextColor3 = "Inactive Text"})
+
+    Items["Liner"] = Library:Create("Frame", {
+        Name = "\0",
+        Parent = Items["Background"].Instance,
+        Position = UDim2.new(0, 0, 0, 30),
+        Size = UDim2.new(1, 0, 0, 2),
+        BorderSizePixel = 0,
+        BackgroundColor3 = Library.Theme["Accent"]
+    }):AddToTheme({BackgroundColor3 = "Accent"})
+
+    Items["ViewportOutline"] = Library:Create("Frame", {
+        Name = "\0",
+        Parent = Items["Background"].Instance,
+        Position = UDim2.fromOffset(8, 40),
+        Size = UDim2.new(1, -16, 1, -48),
+        BorderSizePixel = 0,
+        BackgroundColor3 = Library.Theme["Border"]
+    }):AddToTheme({BackgroundColor3 = "Border"})
+
+    Items["ViewportInline"] = Library:Create("Frame", {
+        Name = "\0",
+        Parent = Items["ViewportOutline"].Instance,
+        Position = UDim2.fromOffset(1, 1),
+        Size = UDim2.new(1, -2, 1, -2),
+        BorderSizePixel = 0,
+        BackgroundColor3 = Library.Theme["Outline"]
+    }):AddToTheme({BackgroundColor3 = "Outline"})
+
+    Items["Viewport"] = Library:Create("ViewportFrame", {
+        Name = "\0",
+        Parent = Items["ViewportInline"].Instance,
+        Position = UDim2.fromOffset(1, 1),
+        Size = UDim2.new(1, -2, 1, -2),
+        BorderSizePixel = 0,
+        Active = true,
+        BackgroundColor3 = Library.Theme["Element"],
+        Ambient = Color3.fromRGB(200, 200, 200),
+        LightColor = Color3.fromRGB(255, 255, 255),
+        LightDirection = Vector3.new(-1, -1, -1)
+    }):AddToTheme({BackgroundColor3 = "Element"})
+
+    Items["World"] = Library:Create("WorldModel", {
+        Name = "\0",
+        Parent = Items["Viewport"].Instance
+    })
+
+    Items["Camera"] = Library:Create("Camera", {
+        Name = "\0",
+        Parent = Items["Viewport"].Instance,
+        FieldOfView = 50
+    })
+
+    Items["Viewport"].Instance.CurrentCamera = Items["Camera"].Instance
+
+    local draggingWindow = false
+    local dragInput
+    local dragStart
+    local startPosition
+
+    Items["TitleBar"]:Connect("InputBegan", function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch
+        then
+            draggingWindow = true
+            dragStart = input.Position
+            startPosition = Items["Outline"].Instance.Position
+
+            local changedConnection
+            changedConnection = input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    draggingWindow = false
+
+                    if changedConnection then
+                        changedConnection:Disconnect()
+                    end
+                end
+            end)
+        end
+    end)
+
+    Library:Connect(UserInputService.InputChanged, function(input)
+        if not draggingWindow then
+            return
+        end
+
+        if input.UserInputType ~= Enum.UserInputType.MouseMovement
+            and input.UserInputType ~= Enum.UserInputType.Touch
+        then
+            return
+        end
+
+        local delta = input.Position - dragStart
+
+        Items["Outline"].Instance.Position = UDim2.new(
+            startPosition.X.Scale,
+            startPosition.X.Offset + delta.X,
+            startPosition.Y.Scale,
+            startPosition.Y.Offset + delta.Y
+        )
+    end)
+
+    Items["Close"]:Connect("MouseButton1Down", function()
+        ViewportWindow:SetVisible(false)
+    end)
+
+    function ViewportWindow:SetVisible(value)
+        self.Visible = value == true
+        Items["Outline"].Instance.Visible = self.Visible
+    end
+
+    function ViewportWindow:SetTitle(value)
+        self.Name = tostring(value)
+        Items["Title"].Instance.Text = self.Name
+    end
+
+    function ViewportWindow:Clear()
+        Items["World"].Instance:ClearAllChildren()
+    end
+
+    function ViewportWindow:Destroy()
+        Items["Outline"].Instance:Destroy()
+    end
+
+    return ViewportWindow
 end
 
 getgenv().Library = Library
