@@ -69,6 +69,7 @@ local Library = {
     Connections = { },
     SetFlags = { },
     Dependencies = { },
+    ToggleGroups = { },
 
     ThemingStuff = { },
     ThemeMap = { },
@@ -90,6 +91,48 @@ local Library = {
     local Flags = Library.Flags 
     local SetFlags = Library.SetFlags
 
+
+
+    function Library:RegisterToggleGroup(Toggle)
+        if not Toggle or type(Toggle.Flag) ~= "string" then
+            return Toggle
+        end
+
+        Library.ToggleGroups[Toggle.Flag] =
+            Library.ToggleGroups[Toggle.Flag]
+            or {}
+
+        table.insert(
+            Library.ToggleGroups[Toggle.Flag],
+            Toggle
+        )
+
+        return Toggle
+    end
+
+    function Library:SetToggleGroupValue(Flag, Bool)
+        Bool = Bool == true
+        Flags[Flag] = Bool
+
+        local Group = Library.ToggleGroups[Flag]
+
+        if Group then
+            for Index = #Group, 1, -1 do
+                local Toggle = Group[Index]
+
+                if not Toggle
+                    or type(Toggle.ApplyValue) ~= "function"
+                then
+                    table.remove(Group, Index)
+                    continue
+                end
+
+                Toggle:ApplyValue(Bool)
+            end
+        end
+
+        Library:UpdateDependencies(Flag)
+    end
 
     function Library:GetDependencyVisibility(Dependency)
         if type(Dependency) == "string" then
@@ -3358,10 +3401,17 @@ local Library = {
                 Items["Indicator"]:Tween({BackgroundColor3 = Library.Theme["Element 2"]})
             end)
 
-            function Toggle:Set(Bool)
-                Toggle.Value = Bool 
+            function Toggle:ApplyValue(Bool)
+                Bool = Bool == true
 
-                if Bool then 
+                local Changed =
+                    Toggle.Value ~= Bool
+                    or Toggle.Initialized ~= true
+
+                Toggle.Value = Bool
+                Toggle.Initialized = true
+
+                if Bool then
                     Items["Indicator"]:ChangeItemTheme({BackgroundColor3 = "Accent"})
                     Items["Indicator"]:Tween({BackgroundColor3 = Library.Theme.Accent})
                 else
@@ -3369,9 +3419,16 @@ local Library = {
                     Items["Indicator"]:Tween({BackgroundColor3 = Library.Theme["Element 2"]})
                 end
 
-                Flags[Toggle.Flag] = Bool
-                Library:UpdateDependencies(Toggle.Flag)
-                Library:SafeCall(Toggle.Callback, Bool)
+                if Changed then
+                    Library:SafeCall(Toggle.Callback, Bool)
+                end
+            end
+
+            function Toggle:Set(Bool)
+                Library:SetToggleGroupValue(
+                    Toggle.Flag,
+                    Bool
+                )
             end
 
             function Toggle:SetVisibility(Bool)
@@ -3442,11 +3499,16 @@ local Library = {
                 Toggle:Set(not Toggle.Value)
             end)
 
-            Toggle:Set(Toggle.Default)
+            Library:RegisterToggleGroup(Toggle)
 
             SetFlags[Toggle.Flag] = function(Value)
-                Toggle:Set(Value)
+                Library:SetToggleGroupValue(
+                    Toggle.Flag,
+                    Value
+                )
             end
+
+            Toggle:Set(Toggle.Default)
 
             Library:RegisterDependency(
                 Toggle,
