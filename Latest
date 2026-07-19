@@ -3891,6 +3891,8 @@ local Library = {
                 Default = Params.Default or Params.default or "",
                 Callback = Params.Callback or Params.callback or function() end,
                 Multi = Params.Multi or Params.multi or false,
+                Required = Params.Required == true
+                    or Params.required == true,
 
                 Window = Self.Window,
                 Page = Self.Page,
@@ -4073,26 +4075,65 @@ local Library = {
             end)
 
             function Dropdown:Set(Value)
-                if Dropdown.Multi then 
-                    if type(Value) ~= "table" then 
-                        return
+                if Dropdown.Multi then
+                    if type(Value) ~= "table" then
+                        Value = {}
                     end
 
-                    Dropdown.Value = Value
+                    local NewValue = {}
 
-                    for Index, Value in Value do
-                        local OptionData = Dropdown.Options[Value]
-                         
-                        if not OptionData then
-                            continue
+                    for _, OptionName in Value do
+                        if Dropdown.Options[OptionName]
+                            and not table.find(NewValue, OptionName)
+                        then
+                            table.insert(NewValue, OptionName)
+                        end
+                    end
+
+                    if Dropdown.Required and #NewValue == 0 then
+                        local DefaultValue =
+                            type(Dropdown.Default) == "table"
+                            and Dropdown.Default
+                            or {}
+
+                        for _, OptionName in DefaultValue do
+                            if Dropdown.Options[OptionName]
+                                and not table.find(NewValue, OptionName)
+                            then
+                                table.insert(NewValue, OptionName)
+                            end
                         end
 
-                        OptionData.IsSelected = true 
-                        OptionData:ToggleState("Active")
+                        if #NewValue == 0 then
+                            for OptionName in Dropdown.Options do
+                                table.insert(NewValue, OptionName)
+                                break
+                            end
+                        end
                     end
 
-                    Flags[Dropdown.Flag] = Value
-                    Items["Value"].Instance.Text = table.concat(Value, ", ")
+                    Dropdown.Value = NewValue
+
+                    for OptionName, OptionData in Dropdown.Options do
+                        local IsSelected =
+                            table.find(NewValue, OptionName)
+                            ~= nil
+
+                        OptionData.IsSelected = IsSelected
+                        OptionData:ToggleState(
+                            IsSelected
+                                and "Active"
+                                or "Inactive"
+                        )
+                    end
+
+                    Flags[Dropdown.Flag] =
+                        table.clone(NewValue)
+
+                    Items["Value"].Instance.Text =
+                        #NewValue > 0
+                        and table.concat(NewValue, ", ")
+                        or "none"
                 else
                     if not Dropdown.Options[Value] then
                         return
@@ -4102,13 +4143,13 @@ local Library = {
 
                     Dropdown.Value = Value
 
-                    for Index, Value in Dropdown.Options do
-                        if Value ~= OptionData then
-                            Value.IsSelected = false 
-                            Value:ToggleState("Inactive")
+                    for _, CurrentOption in Dropdown.Options do
+                        if CurrentOption ~= OptionData then
+                            CurrentOption.IsSelected = false
+                            CurrentOption:ToggleState("Inactive")
                         else
-                            Value.IsSelected = true 
-                            Value:ToggleState("Active")
+                            CurrentOption.IsSelected = true
+                            CurrentOption:ToggleState("Active")
                         end
                     end
 
@@ -4116,7 +4157,12 @@ local Library = {
                     Items["Value"].Instance.Text = Value
                 end
 
-                Library:SafeCall(Dropdown.Callback, Dropdown.Value)
+                Library:SafeCall(
+                    Dropdown.Callback,
+                    Dropdown.Multi
+                        and table.clone(Dropdown.Value)
+                        or Dropdown.Value
+                )
             end
 
             function Dropdown:Add(Value)
@@ -4170,21 +4216,51 @@ local Library = {
 
                     OptionData.IsSelected = not OptionData.IsSelected
 
-                    if Dropdown.Multi then 
-                        local Index = table.find(Dropdown.Value, OptionData.Name)
+                    if Dropdown.Multi then
+                        local Index =
+                            table.find(
+                                Dropdown.Value,
+                                OptionData.Name
+                            )
 
-                        if Index then 
-                            table.remove(Dropdown.Value, Index)
-                        else
-                            table.insert(Dropdown.Value, OptionData.Name)
+                        if Index
+                            and Dropdown.Required
+                            and #Dropdown.Value <= 1
+                        then
+                            return
                         end
 
-                        OptionData:ToggleState(Index and "Inactive" or "Active")
+                        if Index then
+                            table.remove(Dropdown.Value, Index)
+                        else
+                            table.insert(
+                                Dropdown.Value,
+                                OptionData.Name
+                            )
+                        end
 
-                        Flags[Dropdown.Flag] = Dropdown.Value
+                        OptionData.IsSelected =
+                            Index == nil
 
-                        local TextFormat = #Dropdown.Value > 0 and table.concat(Dropdown.Value, ", ") or "none"
-                        Items["Value"].Instance.Text = TextFormat
+                        OptionData:ToggleState(
+                            Index
+                                and "Inactive"
+                                or "Active"
+                        )
+
+                        Flags[Dropdown.Flag] =
+                            table.clone(Dropdown.Value)
+
+                        local TextFormat =
+                            #Dropdown.Value > 0
+                            and table.concat(
+                                Dropdown.Value,
+                                ", "
+                            )
+                            or "none"
+
+                        Items["Value"].Instance.Text =
+                            TextFormat
                     else
                         if OptionData.IsSelected then 
                             Dropdown.Value = OptionData.Name
@@ -4212,7 +4288,12 @@ local Library = {
                         end
                     end
 
-                    Library:SafeCall(Dropdown.Callback, Dropdown.Value)
+                    Library:SafeCall(
+                        Dropdown.Callback,
+                        Dropdown.Multi
+                            and table.clone(Dropdown.Value)
+                            or Dropdown.Value
+                    )
                 end
 
                 OptionData.Button:Connect("MouseButton1Down", function()
