@@ -22,7 +22,7 @@ local Mouse = cloneref(LocalPlayer:GetMouse())
 
 local Library = { 
     Flags = { },
-    MenuKeybind = tostring(Enum.KeyCode.RightControl), -- has to be a string
+    MenuKeybind = tostring(Enum.KeyCode.Delete), -- has to be a string
 
     RootDirectory = "siff",
     Directory = "siff/" .. tostring(game.PlaceId),
@@ -32,28 +32,28 @@ local Library = {
         Themes = "/Themes"
     },
 
-    FontSize = 12,
+    FontSize = 13,
 
     Animation = {
-        Time = 0.3,
+        Time = 0.2,
         Style = "Quint",
         Direction = "Out"
     },
 
     TabAnimation = {
-        Time = 1,
+        Time = 0.35,
         Style = "Exponential",
         Direction = "Out"
     },
 
     ColorpickerAnimation = {
-        Time = 0.55,
+        Time = 0.25,
         Style = "Exponential",
         Direction = "Out"
     },
 
     NotifAnimation = {
-        Time = 0.85,
+        Time = 0.45,
         Style = "Exponential",
         Direction = "Out"
     },
@@ -68,6 +68,8 @@ local Library = {
     Threads = { },
     Connections = { },
     SetFlags = { },
+    Dependencies = { },
+    ToggleGroups = { },
 
     ThemingStuff = { },
     ThemeMap = { },
@@ -88,6 +90,148 @@ local Library = {
 
     local Flags = Library.Flags 
     local SetFlags = Library.SetFlags
+
+
+
+    function Library:RegisterToggleGroup(Toggle)
+        if not Toggle or type(Toggle.Flag) ~= "string" then
+            return Toggle
+        end
+
+        Library.ToggleGroups[Toggle.Flag] =
+            Library.ToggleGroups[Toggle.Flag]
+            or {}
+
+        table.insert(
+            Library.ToggleGroups[Toggle.Flag],
+            Toggle
+        )
+
+        return Toggle
+    end
+
+    function Library:SetToggleGroupValue(Flag, Bool)
+        Bool = Bool == true
+        Flags[Flag] = Bool
+
+        local Group = Library.ToggleGroups[Flag]
+
+        if Group then
+            for Index = #Group, 1, -1 do
+                local Toggle = Group[Index]
+
+                if not Toggle
+                    or type(Toggle.ApplyValue) ~= "function"
+                then
+                    table.remove(Group, Index)
+                    continue
+                end
+
+                Toggle:ApplyValue(Bool)
+            end
+        end
+
+        Library:UpdateDependencies(Flag)
+    end
+
+    function Library:GetDependencyVisibility(Dependency)
+        if type(Dependency) == "string" then
+            return Flags[Dependency] == true
+        end
+
+        if type(Dependency) == "table" then
+            for _, Flag in ipairs(Dependency) do
+                if Flags[Flag] ~= true then
+                    return false
+                end
+            end
+
+            return true
+        end
+
+        return true
+    end
+
+    function Library:RegisterDependency(Object, Dependency)
+        if not Dependency
+            or not Object
+            or type(Object.SetVisibility) ~= "function"
+        then
+            return Object
+        end
+
+        local Record = {
+            Object = Object,
+            Dependency = Dependency
+        }
+
+        local Dependencies = type(Dependency) == "table"
+            and Dependency
+            or {Dependency}
+
+        for _, Flag in ipairs(Dependencies) do
+            Library.Dependencies[Flag] =
+                Library.Dependencies[Flag]
+                or {}
+
+            table.insert(
+                Library.Dependencies[Flag],
+                Record
+            )
+        end
+
+        Object.Dependency = Dependency
+
+        local Visible =
+            Library:GetDependencyVisibility(
+                Dependency
+            )
+
+        if not Visible
+            and Object.IsOpen == true
+            and type(Object.SetOpen) == "function"
+        then
+            Object:SetOpen(false)
+        end
+
+        Object:SetVisibility(Visible)
+
+        return Object
+    end
+
+    function Library:UpdateDependencies(Flag)
+        local Records = Library.Dependencies[Flag]
+
+        if not Records then
+            return
+        end
+
+        for Index = #Records, 1, -1 do
+            local Record = Records[Index]
+            local Object = Record and Record.Object
+
+            if not Object
+                or type(Object.SetVisibility) ~= "function"
+            then
+                table.remove(Records, Index)
+                continue
+            end
+
+            local Visible =
+                Library:GetDependencyVisibility(
+                    Record.Dependency
+                )
+
+            if not Visible
+                and Object.IsOpen == true
+                and type(Object.SetOpen) == "function"
+            then
+                Object:SetOpen(false)
+            end
+
+            Object:SetVisibility(Visible)
+        end
+    end
 
     local Keys = {
         ["Unknown"]           = "Unknown",
@@ -184,16 +328,17 @@ local Library = {
 
     local Themes = {
         ["Preset"] = {
-            ["Border"] = Color3.fromRGB(3, 3, 3),
-            ["Outline"] = Color3.fromRGB(51, 51, 51),
-            ["Background"] = Color3.fromRGB(12, 12, 12),
-            ["Inline"] = Color3.fromRGB(19, 19, 19),
-            ["Accent"] = Color3.fromRGB(99, 99, 255),
-            ["Text"] = Color3.fromRGB(208, 207, 227),
-            ["Inactive Text"] = Color3.fromRGB(134, 134, 134),
-            ["Element"] = Color3.fromRGB(39, 39, 39),
-            ["Element 2"] = Color3.fromRGB(56, 56, 56),
-            ["Hovered Element"] = Color3.fromRGB(61, 61, 61)
+            -- Website-matched palette from style.css
+            ["Border"] = Color3.fromRGB(34, 34, 34),          -- #222222
+            ["Outline"] = Color3.fromRGB(42, 42, 42),         -- #2a2a2a
+            ["Background"] = Color3.fromRGB(20, 20, 22),      -- #141416
+            ["Inline"] = Color3.fromRGB(26, 26, 26),          -- #1a1a1a
+            ["Accent"] = Color3.fromRGB(74, 158, 255),        -- #4a9eff
+            ["Text"] = Color3.fromRGB(204, 204, 204),         -- #cccccc
+            ["Inactive Text"] = Color3.fromRGB(102, 102, 102),-- #666666
+            ["Element"] = Color3.fromRGB(26, 26, 26),         -- #1a1a1a
+            ["Element 2"] = Color3.fromRGB(34, 34, 34),       -- #222222
+            ["Hovered Element"] = Color3.fromRGB(40, 40, 40)  -- subtle hover lift
         }
     }
 
@@ -296,6 +441,18 @@ local Library = {
         end
 
         return setmetatable(Data, Library)
+    end
+
+    -- Rounded geometry inspired by the website design tokens.
+    -- Kept opt-in so tiny indicators, separators, and resize handles stay crisp.
+    Library.AddCorner = function(Self, Object, Radius)
+        local InstanceObject = Object and (Object.Instance or Object)
+        if not InstanceObject then return Object end
+
+        local Corner = Instance.new("UICorner")
+        Corner.CornerRadius = UDim.new(0, Radius or 8)
+        Corner.Parent = InstanceObject
+        return Object
     end
 
     Library.Thread = function(Self, Function)
@@ -928,10 +1085,10 @@ local Library = {
 
     -- themes
     Library:Thread(function()
-        writefile(Library.Directory .. Library.Folders.Themes .. "/Sky.json", '{"MenuKeybindModeDropdown":"Toggle","AccentTheming":{"Color":"#93eeff","Alpha":0},"BackgroundTheming":{"Color":"#141718","Alpha":0},"color":{"Color":"#ffffff","Alpha":0},"MenuKeybind":{"Key":"Enum.KeyCode.RightControl","Mode":"Toggle"},"keybindModeDropdown":"Toggle","keybind2ModeDropdown":"Toggle","Hovered ElementTheming":{"Color":"#444949","Alpha":0},"keybind2ShowInKeybindsList":true,"target":"Head","OutlineTheming":{"Color":"#292d2e","Alpha":0},"keybind3ShowInKeybindsList":true,"InlineTheming":{"Color":"#1f2324","Alpha":0},"keybind":{"Key":"Enum.KeyCode.E","Mode":"Toggle"},"keybind3":{"Key":"Enum.KeyCode.R","Mode":"Toggle"},"keybind3ModeDropdown":"Toggle","ElementTheming":{"Color":"#2e3131","Alpha":0},"Element 2Theming":{"Color":"#454a4b","Alpha":0},"keybind2":{"Key":"Enum.KeyCode.F","Mode":"Toggle"},"ThemeName":"Sky","BorderTheming":{"Color":"#1a1d1d","Alpha":0},"AutoParry":false,"ConfigName":"","keybindShowInKeybindsList":true,"Inactive TextTheming":{"Color":"#868686","Alpha":0},"walkspeed":16,"TextTheming":{"Color":"#ffffff","Alpha":0},"MenuKeybindShowInKeybindsList":true,"textbox":"default"}')
-        writefile(Library.Directory .. Library.Folders.Themes .. "/Magma.json", '{"MenuKeybindModeDropdown":"Toggle","AccentTheming":{"Color":"#e92b1a","Alpha":0},"BackgroundTheming":{"Color":"#221c1c","Alpha":0},"color":{"Color":"#ffffff","Alpha":0},"MenuKeybind":{"Key":"Enum.KeyCode.RightControl","Mode":"Toggle"},"keybindModeDropdown":"Toggle","keybind2ModeDropdown":"Toggle","Hovered ElementTheming":{"Color":"#362a2a","Alpha":0},"keybind2ShowInKeybindsList":true,"target":"Head","OutlineTheming":{"Color":"#291d1d","Alpha":0},"keybind3ShowInKeybindsList":true,"InlineTheming":{"Color":"#1f1717","Alpha":0},"keybind":{"Key":"Enum.KeyCode.E","Mode":"Toggle"},"keybind3":{"Key":"Enum.KeyCode.R","Mode":"Toggle"},"keybind3ModeDropdown":"Toggle","ElementTheming":{"Color":"#292121","Alpha":0},"Element 2Theming":{"Color":"#363131","Alpha":0},"keybind2":{"Key":"Enum.KeyCode.F","Mode":"Toggle"},"ThemeName":"Magma","BorderTheming":{"Color":"#000000","Alpha":0},"AutoParry":true,"ConfigName":"","keybindShowInKeybindsList":true,"Inactive TextTheming":{"Color":"#867979","Alpha":0},"walkspeed":16,"TextTheming":{"Color":"#d0cfe3","Alpha":0},"MenuKeybindShowInKeybindsList":true,"textbox":"default"}')
-        writefile(Library.Directory .. Library.Folders.Themes .. "/Sand.json", '{"MenuKeybindModeDropdown":"Toggle","AccentTheming":{"Color":"#ffe593","Alpha":0},"BackgroundTheming":{"Color":"#2d2e25","Alpha":0},"color":{"Color":"#ffffff","Alpha":0},"MenuKeybind":{"Key":"Enum.KeyCode.RightControl","Mode":"Toggle"},"keybindModeDropdown":"Toggle","keybind2ModeDropdown":"Toggle","Hovered ElementTheming":{"Color":"#47473b","Alpha":0},"keybind2ShowInKeybindsList":true,"target":"Head","OutlineTheming":{"Color":"#585344","Alpha":0},"keybind3ShowInKeybindsList":true,"InlineTheming":{"Color":"#3f4137","Alpha":0},"keybind":{"Key":"Enum.KeyCode.E","Mode":"Toggle"},"keybind3":{"Key":"Enum.KeyCode.R","Mode":"Toggle"},"keybind3ModeDropdown":"Toggle","ElementTheming":{"Color":"#36362c","Alpha":0},"Element 2Theming":{"Color":"#414133","Alpha":0},"keybind2":{"Key":"Enum.KeyCode.F","Mode":"Toggle"},"ThemeName":"Sand","BorderTheming":{"Color":"#141403","Alpha":0},"AutoParry":false,"ConfigName":"","keybindShowInKeybindsList":true,"Inactive TextTheming":{"Color":"#888784","Alpha":0},"walkspeed":16,"TextTheming":{"Color":"#d0cfe3","Alpha":0},"MenuKeybindShowInKeybindsList":true,"textbox":"default"}')
-        writefile(Library.Directory .. Library.Folders.Themes .. "/Navy.json", '{"MenuKeybindModeDropdown":"Toggle","AccentTheming":{"Color":"#0066ff","Alpha":0},"BackgroundTheming":{"Color":"#1c1e24","Alpha":0},"color":{"Color":"#ffffff","Alpha":0},"Watermark":true,"keybind2ModeDropdown":"Toggle","keybindModeDropdown":"Toggle","Hovered ElementTheming":{"Color":"#282b31","Alpha":0},"keybind2ShowInKeybindsList":true,"ThemeName":"Navy","InlineTheming":{"Color":"#202229","Alpha":0},"textbox":"default","OutlineTheming":{"Color":"#252a36","Alpha":0},"keybind":{"Key":"Enum.KeyCode.E","Mode":"Toggle"},"MenuKeybind":{"Key":"Enum.KeyCode.RightControl","Mode":"Toggle"},"BorderTheming":{"Color":"#030303","Alpha":0},"keybind3":{"Key":"Enum.KeyCode.R","Mode":"Toggle"},"keybind3ModeDropdown":"Toggle","ElementTheming":{"Color":"#1d202b","Alpha":0},"Keybind list":true,"keybind2":{"Key":"Enum.KeyCode.F","Mode":"Toggle"},"AutoParry":true,"keybind3ShowInKeybindsList":true,"Element 2Theming":{"Color":"#3e414b","Alpha":0},"keybindShowInKeybindsList":true,"ConfigName":"","Inactive TextTheming":{"Color":"#65697e","Alpha":0},"walkspeed":34,"TextTheming":{"Color":"#a5a4bb","Alpha":0},"MenuKeybindShowInKeybindsList":true,"target":"Head"}')
+        writefile(Library.Directory .. Library.Folders.Themes .. "/Sky.json", '{"MenuKeybindModeDropdown":"Toggle","AccentTheming":{"Color":"#93eeff","Alpha":0},"BackgroundTheming":{"Color":"#141718","Alpha":0},"color":{"Color":"#ffffff","Alpha":0},"MenuKeybind":{"Key":"Enum.KeyCode.Delete","Mode":"Toggle"},"keybindModeDropdown":"Toggle","keybind2ModeDropdown":"Toggle","Hovered ElementTheming":{"Color":"#444949","Alpha":0},"keybind2ShowInKeybindsList":true,"target":"Head","OutlineTheming":{"Color":"#292d2e","Alpha":0},"keybind3ShowInKeybindsList":true,"InlineTheming":{"Color":"#1f2324","Alpha":0},"keybind":{"Key":"Enum.KeyCode.E","Mode":"Toggle"},"keybind3":{"Key":"Enum.KeyCode.R","Mode":"Toggle"},"keybind3ModeDropdown":"Toggle","ElementTheming":{"Color":"#2e3131","Alpha":0},"Element 2Theming":{"Color":"#454a4b","Alpha":0},"keybind2":{"Key":"Enum.KeyCode.F","Mode":"Toggle"},"ThemeName":"Sky","BorderTheming":{"Color":"#1a1d1d","Alpha":0},"AutoParry":false,"ConfigName":"","keybindShowInKeybindsList":true,"Inactive TextTheming":{"Color":"#868686","Alpha":0},"walkspeed":16,"TextTheming":{"Color":"#ffffff","Alpha":0},"MenuKeybindShowInKeybindsList":true,"textbox":"default"}')
+        writefile(Library.Directory .. Library.Folders.Themes .. "/Magma.json", '{"MenuKeybindModeDropdown":"Toggle","AccentTheming":{"Color":"#e92b1a","Alpha":0},"BackgroundTheming":{"Color":"#221c1c","Alpha":0},"color":{"Color":"#ffffff","Alpha":0},"MenuKeybind":{"Key":"Enum.KeyCode.Delete","Mode":"Toggle"},"keybindModeDropdown":"Toggle","keybind2ModeDropdown":"Toggle","Hovered ElementTheming":{"Color":"#362a2a","Alpha":0},"keybind2ShowInKeybindsList":true,"target":"Head","OutlineTheming":{"Color":"#291d1d","Alpha":0},"keybind3ShowInKeybindsList":true,"InlineTheming":{"Color":"#1f1717","Alpha":0},"keybind":{"Key":"Enum.KeyCode.E","Mode":"Toggle"},"keybind3":{"Key":"Enum.KeyCode.R","Mode":"Toggle"},"keybind3ModeDropdown":"Toggle","ElementTheming":{"Color":"#292121","Alpha":0},"Element 2Theming":{"Color":"#363131","Alpha":0},"keybind2":{"Key":"Enum.KeyCode.F","Mode":"Toggle"},"ThemeName":"Magma","BorderTheming":{"Color":"#000000","Alpha":0},"AutoParry":true,"ConfigName":"","keybindShowInKeybindsList":true,"Inactive TextTheming":{"Color":"#867979","Alpha":0},"walkspeed":16,"TextTheming":{"Color":"#d0cfe3","Alpha":0},"MenuKeybindShowInKeybindsList":true,"textbox":"default"}')
+        writefile(Library.Directory .. Library.Folders.Themes .. "/Sand.json", '{"MenuKeybindModeDropdown":"Toggle","AccentTheming":{"Color":"#ffe593","Alpha":0},"BackgroundTheming":{"Color":"#2d2e25","Alpha":0},"color":{"Color":"#ffffff","Alpha":0},"MenuKeybind":{"Key":"Enum.KeyCode.Delete","Mode":"Toggle"},"keybindModeDropdown":"Toggle","keybind2ModeDropdown":"Toggle","Hovered ElementTheming":{"Color":"#47473b","Alpha":0},"keybind2ShowInKeybindsList":true,"target":"Head","OutlineTheming":{"Color":"#585344","Alpha":0},"keybind3ShowInKeybindsList":true,"InlineTheming":{"Color":"#3f4137","Alpha":0},"keybind":{"Key":"Enum.KeyCode.E","Mode":"Toggle"},"keybind3":{"Key":"Enum.KeyCode.R","Mode":"Toggle"},"keybind3ModeDropdown":"Toggle","ElementTheming":{"Color":"#36362c","Alpha":0},"Element 2Theming":{"Color":"#414133","Alpha":0},"keybind2":{"Key":"Enum.KeyCode.F","Mode":"Toggle"},"ThemeName":"Sand","BorderTheming":{"Color":"#141403","Alpha":0},"AutoParry":false,"ConfigName":"","keybindShowInKeybindsList":true,"Inactive TextTheming":{"Color":"#888784","Alpha":0},"walkspeed":16,"TextTheming":{"Color":"#d0cfe3","Alpha":0},"MenuKeybindShowInKeybindsList":true,"textbox":"default"}')
+        writefile(Library.Directory .. Library.Folders.Themes .. "/Navy.json", '{"MenuKeybindModeDropdown":"Toggle","AccentTheming":{"Color":"#0066ff","Alpha":0},"BackgroundTheming":{"Color":"#1c1e24","Alpha":0},"color":{"Color":"#ffffff","Alpha":0},"Watermark":true,"keybind2ModeDropdown":"Toggle","keybindModeDropdown":"Toggle","Hovered ElementTheming":{"Color":"#282b31","Alpha":0},"keybind2ShowInKeybindsList":true,"ThemeName":"Navy","InlineTheming":{"Color":"#202229","Alpha":0},"textbox":"default","OutlineTheming":{"Color":"#252a36","Alpha":0},"keybind":{"Key":"Enum.KeyCode.E","Mode":"Toggle"},"MenuKeybind":{"Key":"Enum.KeyCode.Delete","Mode":"Toggle"},"BorderTheming":{"Color":"#030303","Alpha":0},"keybind3":{"Key":"Enum.KeyCode.R","Mode":"Toggle"},"keybind3ModeDropdown":"Toggle","ElementTheming":{"Color":"#1d202b","Alpha":0},"Keybind list":false,"keybind2":{"Key":"Enum.KeyCode.F","Mode":"Toggle"},"AutoParry":true,"keybind3ShowInKeybindsList":true,"Element 2Theming":{"Color":"#3e414b","Alpha":0},"keybindShowInKeybindsList":true,"ConfigName":"","Inactive TextTheming":{"Color":"#65697e","Alpha":0},"walkspeed":34,"TextTheming":{"Color":"#a5a4bb","Alpha":0},"MenuKeybindShowInKeybindsList":true,"target":"Head"}')
     end)
 
     do
@@ -974,7 +1131,7 @@ local Library = {
                     Rotation = 90,
                     Color = ColorSequence.new{
                     ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
-                    ColorSequenceKeypoint.new(1, Color3.fromRGB(163, 163, 163))
+                    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
                 }
                 })                
 
@@ -1026,7 +1183,7 @@ local Library = {
                     Rotation = 90,
                     Color = ColorSequence.new{
                     ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
-                    ColorSequenceKeypoint.new(1, Color3.fromRGB(163, 163, 163))
+                    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
                 }
                 })
                 
@@ -1606,7 +1763,7 @@ local Library = {
                     Rotation = 90,
                     Color = ColorSequence.new{
                     ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
-                    ColorSequenceKeypoint.new(1, Color3.fromRGB(163, 163, 163))
+                    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
                 }
                 })
                 
@@ -2037,7 +2194,7 @@ local Library = {
                     Parent = Items["Liner"].Instance,
                     ImageColor3 = Library.Theme["Accent"],
                     ScaleType = Enum.ScaleType.Slice,
-                    ImageTransparency = 0.800000011920929,
+                    ImageTransparency = 0.88,
                     Size = UDim2.new(1, 25, 1, 25),
                     AnchorPoint = Vector2.new(0.5, 0.5),
                     Image = "http://www.roblox.com/asset/?id=18245826428",
@@ -2176,7 +2333,8 @@ local Library = {
         Library.KeybindList = function(Self)
             local KeybindList = {
                 Items = {},
-                Keys = {}
+                Keys = {},
+                Enabled = false
             }
         
             local Items = {} do
@@ -2187,6 +2345,7 @@ local Library = {
                     Position = UDim2.new(0, 10, 0.5, 0), 
                     Size = UDim2.new(0, 34, 0, 53), 
                     ClipsDescendants = true, 
+                    Visible = false,
                     BorderSizePixel = 0, 
                     BackgroundColor3 = Library.Theme["Background"]
                 }):AddToTheme({BackgroundColor3 = "Background"})
@@ -2276,7 +2435,8 @@ local Library = {
             Self.KeybindList = KeybindList
         
             function KeybindList:SetVisibility(Bool)
-                Items["KeybindList"].Instance.Visible = Bool
+                KeybindList.Enabled = Bool == true
+                KeybindList:UpdateSize()
             end
         
             function KeybindList:UpdateSize()
@@ -2313,7 +2473,7 @@ local Library = {
                     end
                 end
         
-                if #ActiveKeys == 0 then 
+                if #ActiveKeys == 0 or not KeybindList.Enabled then 
                     Items["KeybindList"].Instance.Visible = false
                 else
                     Items["KeybindList"].Instance.Visible = true
@@ -2492,6 +2652,7 @@ local Library = {
                     BackgroundColor3 = Color
                 })
         
+                Library:AddCorner(Items["Notification"], 8)
                 Notification.Items = Items
             end
         
@@ -2592,10 +2753,12 @@ local Library = {
                     Parent = Library.Holder.Instance,
                     AnchorPoint = Vector2.new(0.5, 0.5),
                     Position = UDim2.new(0.5, 0, 0.5, 0),
-                    Size = UDim2.new(0, 613, 0, 453),
+                    Size = UDim2.new(0, 660, 0, 480),
                     BorderSizePixel = 0,
                     BackgroundColor3 = Library.Theme["Border"]
                 }):AddToTheme({BackgroundColor3 = 'Border'})
+
+                Library:AddCorner(Items["Outline"], 10)
 
                 Items["Outline"]:MakeDraggable()
                 Items["Outline"]:MakeResizeable(Vector2.new(Items["Outline"].Instance.AbsoluteSize.X, Items["Outline"].Instance.AbsoluteSize.Y))
@@ -2617,6 +2780,9 @@ local Library = {
                     BorderSizePixel = 0,
                     BackgroundColor3 = Library.Theme["Background"]
                 }):AddToTheme({BackgroundColor3 = 'Background'})
+
+                Library:AddCorner(Items["Outline2"], 9)
+                Library:AddCorner(Items["Background"], 8)
                 
                 --[[
                 Items["Title"] = Library:Create("TextLabel", {
@@ -2637,7 +2803,7 @@ local Library = {
                 Items["Liner"] = Library:Create("Frame", {
                     Name = "\0",
                     Parent = Items["Background"].Instance,
-                    Size = UDim2.new(1, 0, 0, 2),
+                    Size = UDim2.new(1, 0, 0, 1),
                     Position = UDim2.new(0, 0, 0, 30),
                     ZIndex = 2,
                     BorderSizePixel = 0,
@@ -2649,7 +2815,7 @@ local Library = {
                     Parent = Items["Liner"].Instance,
                     ImageColor3 = Library.Theme["Accent"],
                     ScaleType = Enum.ScaleType.Slice,
-                    ImageTransparency = 0.800000011920929,
+                    ImageTransparency = 0.88,
                     Size = UDim2.new(1, 8, 1, 8),
                     AnchorPoint = Vector2.new(0.5, 0.5),
                     Image = "http://www.roblox.com/asset/?id=18245826428",
@@ -2725,6 +2891,55 @@ local Library = {
                 end
             end
 
+            if IsMobile then
+                local OldMobileToggle =
+                    Library.Holder.Instance:FindFirstChild(
+                        "siff_MobileToggle"
+                    )
+
+                if OldMobileToggle then
+                    OldMobileToggle:Destroy()
+                end
+
+                local MobileToggle =
+                    Instance.new("TextButton")
+
+                MobileToggle.Name = "siff_MobileToggle"
+                MobileToggle.AnchorPoint = Vector2.new(0, 0.5)
+                MobileToggle.Position =
+                    UDim2.new(0, 12, 0.5, 0)
+                MobileToggle.Size =
+                    UDim2.fromOffset(48, 30)
+                MobileToggle.BackgroundColor3 =
+                    Color3.fromRGB(12, 12, 12)
+                MobileToggle.BorderColor3 =
+                    Library.Theme["Accent"]
+                MobileToggle.BorderSizePixel = 1
+                MobileToggle.AutoButtonColor = false
+                MobileToggle.Text = "siff"
+                MobileToggle.TextColor3 =
+                    Library.Theme["Text"]
+                MobileToggle.TextSize =
+                    Library.FontSize
+                MobileToggle.FontFace =
+                    Library.Font
+                MobileToggle.ZIndex = 10000
+                MobileToggle.Parent =
+                    Library.Holder.Instance
+
+                Library.MobileToggleButton =
+                    MobileToggle
+
+                Library:Connect(
+                    MobileToggle.Activated,
+                    function()
+                        Window:SetOpen(
+                            not Window.IsOpen
+                        )
+                    end
+                )
+            end
+
             function Window:Center()
                 local AbsPos = Items["Outline"].Instance.AbsolutePosition
                 Items["Outline"].Instance.AnchorPoint = Vector2.new(0, 0)
@@ -2752,14 +2967,31 @@ local Library = {
             local WaveSpacing = 0.25
 
             local Letters = { } -- try not to make the title too long since every letter is created individually for the animation
+            local VisualIndex = 0
 
-            for Index = 1, #Window.Name do 
-                local Letter = Window.Name:sub(Index, Index)
+            for StartByte, EndByte in utf8.graphemes(Window.Name) do
+                VisualIndex += 1
+
+                local Letter = Window.Name:sub(StartByte, EndByte)
+                local LetterWidth = Width
+
+                if utf8.len(Letter) and utf8.len(Letter) > 1 then
+                    LetterWidth = Width * 2
+                elseif string.byte(Letter, 1) and string.byte(Letter, 1) >= 128 then
+                    LetterWidth = Width * 2
+                end
+
+                local PreviousX = OffsetX
+
+                if VisualIndex > 1 then
+                    local Previous = Letters[VisualIndex - 1]
+                    PreviousX = Previous.X + Previous.Width
+                end
 
                 local NewLetter = Library:Create("TextLabel",{
                     Name = "\0",
-                    Size = UDim2.new(0, Width, 0, 0),
-                    Position = UDim2.new(0, OffsetX + ((Index - 1) * Width), 0, OffsetY),
+                    Size = UDim2.new(0, LetterWidth, 0, 0),
+                    Position = UDim2.new(0, PreviousX, 0, OffsetY),
                     BackgroundTransparency = 1,
                     BorderSizePixel = 0,
                     Text = Letter,
@@ -2768,22 +3000,48 @@ local Library = {
                     Parent = Items["Background"].Instance
                 }):AddToTheme({TextColor3 = 'Accent'})
 
-                Letters[Index] = {
+                Letters[VisualIndex] = {
                     LetterInstance = NewLetter,
-                    X = OffsetX + ((Index - 1) * Width),
-                    Y = OffsetY
+                    X = PreviousX,
+                    Y = OffsetY,
+                    Width = LetterWidth
                 }
             end
 
-            Library:Connect(RunService.RenderStepped, function()
-                local Tick = tick()
+            local TitleAnimationElapsed = 0
 
-                for Index, Value in Letters do 
-                    local OffsetY = math.sin((Tick * WaveSpeed) - (Index * WaveSpacing)) * WaveHeight
-
-                    Value.LetterInstance.Instance.Position = UDim2.new(0, Value.X, 0, Value.Y + OffsetY)
+            Library:Connect(RunService.RenderStepped, function(DeltaT)
+                if not Window.IsOpen then
+                    TitleAnimationElapsed = 0
+                    return
                 end
-            end)            
+
+                TitleAnimationElapsed += DeltaT
+
+                if TitleAnimationElapsed < (1 / 30) then
+                    return
+                end
+
+                TitleAnimationElapsed %= (1 / 30)
+
+                local Tick = os.clock()
+
+                for Index, Value in Letters do
+                    local OffsetY =
+                        math.sin(
+                            (Tick * WaveSpeed)
+                            - (Index * WaveSpacing)
+                        ) * WaveHeight
+
+                    Value.LetterInstance.Instance.Position =
+                        UDim2.new(
+                            0,
+                            Value.X,
+                            0,
+                            Value.Y + OffsetY
+                        )
+                end
+            end)
 
             Window:Center()
 
@@ -3088,6 +3346,7 @@ local Library = {
                     PaddingBottom = UDim.new(0, 8)
                 })                
 
+                Library:AddCorner(Items["Section"], 8)
                 Section.Items = Items
             end 
 
@@ -3162,7 +3421,7 @@ local Library = {
                     Rotation = 90,
                     Color = ColorSequence.new{
                     ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
-                    ColorSequenceKeypoint.new(1, Color3.fromRGB(163, 163, 163))
+                    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
                 }
                 })
                 
@@ -3211,10 +3470,17 @@ local Library = {
                 Items["Indicator"]:Tween({BackgroundColor3 = Library.Theme["Element 2"]})
             end)
 
-            function Toggle:Set(Bool)
-                Toggle.Value = Bool 
+            function Toggle:ApplyValue(Bool)
+                Bool = Bool == true
 
-                if Bool then 
+                local Changed =
+                    Toggle.Value ~= Bool
+                    or Toggle.Initialized ~= true
+
+                Toggle.Value = Bool
+                Toggle.Initialized = true
+
+                if Bool then
                     Items["Indicator"]:ChangeItemTheme({BackgroundColor3 = "Accent"})
                     Items["Indicator"]:Tween({BackgroundColor3 = Library.Theme.Accent})
                 else
@@ -3222,8 +3488,16 @@ local Library = {
                     Items["Indicator"]:Tween({BackgroundColor3 = Library.Theme["Element 2"]})
                 end
 
-                Flags[Toggle.Flag] = Bool
-                Library:SafeCall(Toggle.Callback, Bool)
+                if Changed then
+                    Library:SafeCall(Toggle.Callback, Bool)
+                end
+            end
+
+            function Toggle:Set(Bool)
+                Library:SetToggleGroupValue(
+                    Toggle.Flag,
+                    Bool
+                )
             end
 
             function Toggle:SetVisibility(Bool)
@@ -3294,11 +3568,24 @@ local Library = {
                 Toggle:Set(not Toggle.Value)
             end)
 
-            Toggle:Set(Toggle.Default)
+            Library:RegisterToggleGroup(Toggle)
 
             SetFlags[Toggle.Flag] = function(Value)
-                Toggle:Set(Value)
+                Library:SetToggleGroupValue(
+                    Toggle.Flag,
+                    Value
+                )
             end
+
+            Toggle:Set(Toggle.Default)
+
+            Library:RegisterDependency(
+                Toggle,
+                Params.DependsOn
+                    or Params.dependsOn
+                    or Params.Dependency
+                    or Params.dependency
+            )
 
             return setmetatable(Toggle, Library)
         end
@@ -3372,7 +3659,7 @@ local Library = {
                     Rotation = 90,
                     Color = ColorSequence.new{
                     ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
-                    ColorSequenceKeypoint.new(1, Color3.fromRGB(163, 163, 163))
+                    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
                 }
                 })
                 
@@ -3401,6 +3688,9 @@ local Library = {
                     BackgroundColor3 = Library.Theme["Accent"]
                 }):AddToTheme({BackgroundColor3 = 'Accent'})                
 
+                Library:AddCorner(Items["Button"], 7)
+                Library:AddCorner(Items["Inline"], 6)
+                Library:AddCorner(Items["RealButton"], 5)
                 Button.Items = Items
             end
 
@@ -3431,6 +3721,14 @@ local Library = {
             Items["RealButton"]:Connect("MouseButton1Down", function()
                 Button:Press()
             end)
+
+            Library:RegisterDependency(
+                Button,
+                Params.DependsOn
+                    or Params.dependsOn
+                    or Params.Dependency
+                    or Params.dependency
+            )
 
             return setmetatable(Button, Library)
         end
@@ -3522,7 +3820,7 @@ local Library = {
                     Rotation = 90,
                     Color = ColorSequence.new{
                     ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
-                    ColorSequenceKeypoint.new(1, Color3.fromRGB(163, 163, 163))
+                    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
                 }
                 })
                 
@@ -3548,7 +3846,7 @@ local Library = {
                     Rotation = 90,
                     Color = ColorSequence.new{
                     ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
-                    ColorSequenceKeypoint.new(1, Color3.fromRGB(163, 163, 163))
+                    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
                 }
                 })
                 
@@ -3567,6 +3865,9 @@ local Library = {
                     AutomaticSize = Enum.AutomaticSize.XY
                 }):AddToTheme({TextColor3 = 'Inactive Text'})                
 
+                Library:AddCorner(Items["RealSliderOutline"], 5)
+                Library:AddCorner(Items["RealSlider"], 4)
+                Library:AddCorner(Items["Accent"], 4)
                 Slider.Items = Items 
             end
 
@@ -3644,6 +3945,14 @@ local Library = {
                 Slider:Set(Value)
             end
 
+            Library:RegisterDependency(
+                Slider,
+                Params.DependsOn
+                    or Params.dependsOn
+                    or Params.Dependency
+                    or Params.dependency
+            )
+
             return setmetatable(Slider, Library)
         end
 
@@ -3657,6 +3966,8 @@ local Library = {
                 Default = Params.Default or Params.default or "",
                 Callback = Params.Callback or Params.callback or function() end,
                 Multi = Params.Multi or Params.multi or false,
+                Required = Params.Required == true
+                    or Params.required == true,
 
                 Window = Self.Window,
                 Page = Self.Page,
@@ -3747,7 +4058,7 @@ local Library = {
                     Rotation = 90,
                     Color = ColorSequence.new{
                     ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
-                    ColorSequenceKeypoint.new(1, Color3.fromRGB(163, 163, 163))
+                    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
                 }
                 })
                 
@@ -3829,6 +4140,10 @@ local Library = {
                     SortOrder = Enum.SortOrder.LayoutOrder
                 })
 
+                Library:AddCorner(Items["RealDropdownOutline"], 7)
+                Library:AddCorner(Items["Inline"], 6)
+                Library:AddCorner(Items["RealDropdown"], 5)
+                Library:AddCorner(Items["OptionHolder"], 8)
                 Dropdown.Items = Items 
             end
 
@@ -3839,26 +4154,65 @@ local Library = {
             end)
 
             function Dropdown:Set(Value)
-                if Dropdown.Multi then 
-                    if type(Value) ~= "table" then 
-                        return
+                if Dropdown.Multi then
+                    if type(Value) ~= "table" then
+                        Value = {}
                     end
 
-                    Dropdown.Value = Value
+                    local NewValue = {}
 
-                    for Index, Value in Value do
-                        local OptionData = Dropdown.Options[Value]
-                         
-                        if not OptionData then
-                            continue
+                    for _, OptionName in Value do
+                        if Dropdown.Options[OptionName]
+                            and not table.find(NewValue, OptionName)
+                        then
+                            table.insert(NewValue, OptionName)
+                        end
+                    end
+
+                    if Dropdown.Required and #NewValue == 0 then
+                        local DefaultValue =
+                            type(Dropdown.Default) == "table"
+                            and Dropdown.Default
+                            or {}
+
+                        for _, OptionName in DefaultValue do
+                            if Dropdown.Options[OptionName]
+                                and not table.find(NewValue, OptionName)
+                            then
+                                table.insert(NewValue, OptionName)
+                            end
                         end
 
-                        OptionData.IsSelected = true 
-                        OptionData:ToggleState("Active")
+                        if #NewValue == 0 then
+                            for OptionName in Dropdown.Options do
+                                table.insert(NewValue, OptionName)
+                                break
+                            end
+                        end
                     end
 
-                    Flags[Dropdown.Flag] = Value
-                    Items["Value"].Instance.Text = table.concat(Value, ", ")
+                    Dropdown.Value = NewValue
+
+                    for OptionName, OptionData in Dropdown.Options do
+                        local IsSelected =
+                            table.find(NewValue, OptionName)
+                            ~= nil
+
+                        OptionData.IsSelected = IsSelected
+                        OptionData:ToggleState(
+                            IsSelected
+                                and "Active"
+                                or "Inactive"
+                        )
+                    end
+
+                    Flags[Dropdown.Flag] =
+                        table.clone(NewValue)
+
+                    Items["Value"].Instance.Text =
+                        #NewValue > 0
+                        and table.concat(NewValue, ", ")
+                        or "none"
                 else
                     if not Dropdown.Options[Value] then
                         return
@@ -3868,13 +4222,13 @@ local Library = {
 
                     Dropdown.Value = Value
 
-                    for Index, Value in Dropdown.Options do
-                        if Value ~= OptionData then
-                            Value.IsSelected = false 
-                            Value:ToggleState("Inactive")
+                    for _, CurrentOption in Dropdown.Options do
+                        if CurrentOption ~= OptionData then
+                            CurrentOption.IsSelected = false
+                            CurrentOption:ToggleState("Inactive")
                         else
-                            Value.IsSelected = true 
-                            Value:ToggleState("Active")
+                            CurrentOption.IsSelected = true
+                            CurrentOption:ToggleState("Active")
                         end
                     end
 
@@ -3882,7 +4236,12 @@ local Library = {
                     Items["Value"].Instance.Text = Value
                 end
 
-                Library:SafeCall(Dropdown.Callback, Dropdown.Value)
+                Library:SafeCall(
+                    Dropdown.Callback,
+                    Dropdown.Multi
+                        and table.clone(Dropdown.Value)
+                        or Dropdown.Value
+                )
             end
 
             function Dropdown:Add(Value)
@@ -3936,21 +4295,51 @@ local Library = {
 
                     OptionData.IsSelected = not OptionData.IsSelected
 
-                    if Dropdown.Multi then 
-                        local Index = table.find(Dropdown.Value, OptionData.Name)
+                    if Dropdown.Multi then
+                        local Index =
+                            table.find(
+                                Dropdown.Value,
+                                OptionData.Name
+                            )
 
-                        if Index then 
-                            table.remove(Dropdown.Value, Index)
-                        else
-                            table.insert(Dropdown.Value, OptionData.Name)
+                        if Index
+                            and Dropdown.Required
+                            and #Dropdown.Value <= 1
+                        then
+                            return
                         end
 
-                        OptionData:ToggleState(Index and "Inactive" or "Active")
+                        if Index then
+                            table.remove(Dropdown.Value, Index)
+                        else
+                            table.insert(
+                                Dropdown.Value,
+                                OptionData.Name
+                            )
+                        end
 
-                        Flags[Dropdown.Flag] = Dropdown.Value
+                        OptionData.IsSelected =
+                            Index == nil
 
-                        local TextFormat = #Dropdown.Value > 0 and table.concat(Dropdown.Value, ", ") or "none"
-                        Items["Value"].Instance.Text = TextFormat
+                        OptionData:ToggleState(
+                            Index
+                                and "Inactive"
+                                or "Active"
+                        )
+
+                        Flags[Dropdown.Flag] =
+                            table.clone(Dropdown.Value)
+
+                        local TextFormat =
+                            #Dropdown.Value > 0
+                            and table.concat(
+                                Dropdown.Value,
+                                ", "
+                            )
+                            or "none"
+
+                        Items["Value"].Instance.Text =
+                            TextFormat
                     else
                         if OptionData.IsSelected then 
                             Dropdown.Value = OptionData.Name
@@ -3978,7 +4367,12 @@ local Library = {
                         end
                     end
 
-                    Library:SafeCall(Dropdown.Callback, Dropdown.Value)
+                    Library:SafeCall(
+                        Dropdown.Callback,
+                        Dropdown.Multi
+                            and table.clone(Dropdown.Value)
+                            or Dropdown.Value
+                    )
                 end
 
                 OptionData.Button:Connect("MouseButton1Down", function()
@@ -4105,6 +4499,14 @@ local Library = {
                 Dropdown:Set(Value)
             end
 
+            Library:RegisterDependency(
+                Dropdown,
+                Params.DependsOn
+                    or Params.dependsOn
+                    or Params.Dependency
+                    or Params.dependency
+            )
+
             return setmetatable(Dropdown, Library)
         end
 
@@ -4126,6 +4528,18 @@ local Library = {
                 Padding = Params.Padding or 8,
                 ItemPadding = Params.ItemPadding or 0,
                 TextTheme = Params.TextTheme,
+
+                Height = Params.Height or Params.height or 200,
+                Collapsible = Params.Collapsible == true
+                    or Params.collapsible == true,
+                Open = not (
+                    Params.Collapsible == true
+                    or Params.collapsible == true
+                ) or (
+                    Params.Open == true
+                    or Params.open == true
+                ),
+                DependencyVisible = true,
 
                 Window = Self.Window,
                 Page = Self.Page,
@@ -4153,7 +4567,14 @@ local Library = {
                     Name = "\0",
                     Parent = Parent.Instance,
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 0, Params.Height or Params.height or 200),
+                    ClipsDescendants = true,
+                    Visible = List.Open,
+                    Size = UDim2.new(
+                        1,
+                        0,
+                        0,
+                        List.Open and List.Height or 0
+                    ),
                     BorderSizePixel = 0
                 })
 
@@ -4197,7 +4618,7 @@ local Library = {
                     Rotation = 90,
                     Color = ColorSequence.new{
                         ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
-                        ColorSequenceKeypoint.new(1, Color3.fromRGB(163, 163, 163))
+                        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
                     }
                 })
 
@@ -4253,7 +4674,7 @@ local Library = {
                     Rotation = 90,
                     Color = ColorSequence.new{
                         ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
-                        ColorSequenceKeypoint.new(1, Color3.fromRGB(163, 163, 163))
+                        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
                     }
                 })
 
@@ -4483,8 +4904,31 @@ local Library = {
                 end
             end
 
+            function List:UpdateVisibility()
+                local Visible =
+                    List.DependencyVisible
+                    and (
+                        not List.Collapsible
+                        or List.Open
+                    )
+
+                Items["List"].Instance.Visible = Visible
+                Items["List"].Instance.Size = UDim2.new(
+                    1,
+                    0,
+                    0,
+                    Visible and List.Height or 0
+                )
+            end
+
+            function List:SetOpen(Bool)
+                List.Open = Bool == true
+                List:UpdateVisibility()
+            end
+
             function List:SetVisibility(Bool)
-                Items["List"].Instance.Visible = Bool
+                List.DependencyVisible = Bool == true
+                List:UpdateVisibility()
             end
 
             for Index, Value in List.OptionItems do
@@ -4515,6 +4959,14 @@ local Library = {
                     List:Set(Value)
                 end
             end
+
+            Library:RegisterDependency(
+                List,
+                Params.DependsOn
+                    or Params.dependsOn
+                    or Params.Dependency
+                    or Params.dependency
+            )
 
             return setmetatable(List, Library)
         end
@@ -4651,6 +5103,14 @@ local Library = {
 
             Label:SetText(Label.Name)
 
+            Library:RegisterDependency(
+                Label,
+                Params.DependsOn
+                    or Params.dependsOn
+                    or Params.Dependency
+                    or Params.dependency
+            )
+
             return setmetatable(Label, Library)
         end
 
@@ -4745,7 +5205,7 @@ local Library = {
                     Rotation = 90,
                     Color = ColorSequence.new{
                     ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
-                    ColorSequenceKeypoint.new(1, Color3.fromRGB(163, 163, 163))
+                    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
                 }
                 })
                 
@@ -4769,6 +5229,9 @@ local Library = {
                     AutomaticSize = Enum.AutomaticSize.Y
                 }):AddToTheme({TextColor3 = 'Text', PlaceholderColor3 = 'Inactive Text'})                
 
+                Library:AddCorner(Items["Outline"], 7)
+                Library:AddCorner(Items["Inline"], 6)
+                Library:AddCorner(Items["Background"], 5)
                 Textbox.Items = Items
             end
 
@@ -4818,6 +5281,14 @@ local Library = {
                 Textbox:Set(Value)
             end
             
+            Library:RegisterDependency(
+                Textbox,
+                Params.DependsOn
+                    or Params.dependsOn
+                    or Params.Dependency
+                    or Params.dependency
+            )
+
             return setmetatable(Textbox, Library)
         end
 
@@ -4882,7 +5353,7 @@ local Library = {
                         MenuSection:Toggle({
                             Name = "Keybind list",
                             Flag = "Keybind list",
-                            Default = true,
+                            Default = false,
                             Callback = function(Value)
                                 Self.KeybindList:SetVisibility(Value)
                             end
