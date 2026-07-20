@@ -2757,7 +2757,7 @@ local Library = {
                     BackgroundColor3 = Library.Theme["Border"]
                 }):AddToTheme({BackgroundColor3 = 'Border'})
 
-                Library:AddCorner(Items["Outline"], 6)
+                Library:AddCorner(Items["Outline"], 8)
 
                 Items["Outline"]:MakeDraggable()
                 Items["Outline"]:MakeResizeable(Params.MinimumSize or Vector2.new(560, 410))
@@ -2780,8 +2780,8 @@ local Library = {
                     BackgroundColor3 = Library.Theme["Background"]
                 }):AddToTheme({BackgroundColor3 = 'Background'})
 
-                Library:AddCorner(Items["Outline2"], 5)
-                Library:AddCorner(Items["Background"], 4)
+                Library:AddCorner(Items["Outline2"], 8)
+                Library:AddCorner(Items["Background"], 7)
                 
                 --[[
                 Items["Title"] = Library:Create("TextLabel", {
@@ -3229,7 +3229,7 @@ local Library = {
                     Name = "\0",
                     Parent = Items["Section"].Instance,
                     ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-                    LineJoinMode = Enum.LineJoinMode.Miter,
+                    LineJoinMode = Enum.LineJoinMode.Round,
                     Color = Library.Theme["Outline"]
                 }):AddToTheme({Color = 'Outline'})
                 
@@ -3237,7 +3237,7 @@ local Library = {
                     Name = "\0",
                     Parent = Items["Section"].Instance,
                     ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-                    LineJoinMode = Enum.LineJoinMode.Miter,
+                    LineJoinMode = Enum.LineJoinMode.Round,
                     Color = Library.Theme["Border"],
                     BorderOffset = UDim.new(0, 1)
                 }):AddToTheme({Color = 'Border'})
@@ -3287,7 +3287,7 @@ local Library = {
                     PaddingBottom = UDim.new(0, 8)
                 })                
 
-                Library:AddCorner(Items["Section"], 5)
+                Library:AddCorner(Items["Section"], 8)
                 Section.Items = Items
             end 
 
