@@ -36,25 +36,25 @@ local Library = {
     FontSize = 12,
 
     Animation = {
-        Time = 0.16,
+        Time = 0.3,
         Style = "Quint",
         Direction = "Out"
     },
 
     TabAnimation = {
-        Time = 0.24,
+        Time = 1,
         Style = "Exponential",
         Direction = "Out"
     },
 
     ColorpickerAnimation = {
-        Time = 0.18,
+        Time = 0.55,
         Style = "Exponential",
         Direction = "Out"
     },
 
     NotifAnimation = {
-        Time = 0.32,
+        Time = 0.85,
         Style = "Exponential",
         Direction = "Out"
     },
@@ -99,15 +99,13 @@ local Library = {
 
         Params = Params or {}
 
-        local Ignore =
-            Params.IgnoreConfig == true
+        if Params.IgnoreConfig == true
             or Params.ignoreConfig == true
             or Params.NoConfig == true
             or Params.noConfig == true
             or Params.SaveConfig == false
             or Params.saveConfig == false
-
-        if Ignore then
+        then
             Library.IgnoredConfigFlags[Flag] = true
         end
     end
@@ -353,17 +351,16 @@ local Library = {
 
     local Themes = {
         ["Preset"] = {
-            -- Website-matched palette from style.css
-            ["Border"] = Color3.fromRGB(34, 34, 34),          -- #222222
-            ["Outline"] = Color3.fromRGB(42, 42, 42),         -- #2a2a2a
-            ["Background"] = Color3.fromRGB(20, 20, 22),      -- #141416
-            ["Inline"] = Color3.fromRGB(26, 26, 26),          -- #1a1a1a
-            ["Accent"] = Color3.fromRGB(74, 158, 255),        -- #4a9eff
-            ["Text"] = Color3.fromRGB(204, 204, 204),         -- #cccccc
-            ["Inactive Text"] = Color3.fromRGB(102, 102, 102),-- #666666
-            ["Element"] = Color3.fromRGB(26, 26, 26),         -- #1a1a1a
-            ["Element 2"] = Color3.fromRGB(34, 34, 34),       -- #222222
-            ["Hovered Element"] = Color3.fromRGB(40, 40, 40)  -- subtle hover lift
+            ["Border"] = Color3.fromRGB(3, 3, 3),
+            ["Outline"] = Color3.fromRGB(51, 51, 51),
+            ["Background"] = Color3.fromRGB(12, 12, 12),
+            ["Inline"] = Color3.fromRGB(19, 19, 19),
+            ["Accent"] = Color3.fromRGB(99, 99, 255),
+            ["Text"] = Color3.fromRGB(208, 207, 227),
+            ["Inactive Text"] = Color3.fromRGB(134, 134, 134),
+            ["Element"] = Color3.fromRGB(39, 39, 39),
+            ["Element 2"] = Color3.fromRGB(56, 56, 56),
+            ["Hovered Element"] = Color3.fromRGB(61, 61, 61)
         }
     }
 
@@ -392,9 +389,10 @@ local Library = {
             return Font.new(getcustomasset(`{Library.Directory .. Library.Folders.Assets}/{Name}.font`))
         end
 
-        -- Built-in Gotham renders more cleanly at small UI sizes than the old bitmap-like Tahoma asset.
-        -- Keeping the custom font loader above preserves compatibility for scripts that still use it.
-        Library.Font = Font.fromEnum(Enum.Font.Gotham)
+        Library.Font = CustomFont:New("TahomaXP", 400, "Regular", {
+            Id = "TahomaXP",
+            Url = "https://github.com/sametexe001/luas/raw/refs/heads/main/fonts/windows-xp-tahoma.ttf"
+        })
     end
 
     Library.Exit = function(Self)
@@ -465,18 +463,6 @@ local Library = {
         end
 
         return setmetatable(Data, Library)
-    end
-
-    -- Rounded geometry inspired by the website design tokens.
-    -- Kept opt-in so tiny indicators, separators, and resize handles stay crisp.
-    Library.AddCorner = function(Self, Object, Radius)
-        local InstanceObject = Object and (Object.Instance or Object)
-        if not InstanceObject then return Object end
-
-        local Corner = Instance.new("UICorner")
-        Corner.CornerRadius = UDim.new(0, Radius or 8)
-        Corner.Parent = InstanceObject
-        return Object
     end
 
     Library.Thread = function(Self, Function)
@@ -843,82 +829,23 @@ local Library = {
         return math.floor(Number * Multiplier) / Multiplier
     end
 
-    local function CopyConfigValue(Value, Seen)
-        local ValueType = type(Value)
-
-        if ValueType == "nil"
-            or ValueType == "boolean"
-            or ValueType == "number"
-            or ValueType == "string"
-        then
-            return Value
-        end
-
-        if ValueType ~= "table" then
-            return nil
-        end
-
-        Seen = Seen or {}
-
-        if Seen[Value] then
-            return nil
-        end
-
-        Seen[Value] = true
-
-        if Value.Key then
-            Seen[Value] = nil
-            return {
-                Key = tostring(Value.Key),
-                Mode = Value.Mode
-            }
-        end
-
-        if Value.Color then
-            Seen[Value] = nil
-            return {
-                Color = "#" .. tostring(Value.HexValue),
-                Alpha = Value.Alpha
-            }
-        end
-
-        local Copy = {}
-
-        for Key, Item in Value do
-            local SafeKeyType = type(Key)
-
-            if SafeKeyType == "string" or SafeKeyType == "number" then
-                local CopiedItem = CopyConfigValue(Item, Seen)
-
-                if CopiedItem ~= nil then
-                    Copy[Key] = CopiedItem
-                end
-            end
-        end
-
-        Seen[Value] = nil
-        return Copy
-    end
-
     Library.GetConfig = function(Self)
         local Config = { }
 
         local Success, Result = Library:SafeCall(function()
-            for Index, Value in Library.Flags do
-                if Library:IsConfigIgnored(Index) then
-                    continue
-                end
-
-                local CopiedValue = CopyConfigValue(Value)
-
-                if CopiedValue ~= nil then
-                    Config[Index] = CopiedValue
+            for Index, Value in Library.Flags do 
+                if type(Value) == "table" and Value.Key then
+                    Config[Index] = {Key = tostring(Value.Key), Mode = Value.Mode}
+                elseif type(Value) == "table" and Value.Color then
+                    Config[Index] = {Color = "#" .. Value.HexValue, Alpha = Value.Alpha}
+                else
+                    Config[Index] = Value
                 end
             end
         end)
 
         if not Success then
-            warn("Failed to get config:\n" .. tostring(Result))
+            warn("Failed to get config:\n"..Result)
             return
         end
 
@@ -1102,7 +1029,11 @@ local Library = {
         local Decoded = HttpService:JSONDecode(Config)
 
         local Success, Result = Library:SafeCall(function()
-            for Index, Value in Decoded do 
+            for Index, Value in Decoded do
+                if Library:IsConfigIgnored(Index) then
+                    continue
+                end
+
                 local SetFunction = Library.SetFlags[Index]
 
                 if not SetFunction then
@@ -1218,7 +1149,7 @@ local Library = {
                     Rotation = 90,
                     Color = ColorSequence.new{
                     ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
-                    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
+                    ColorSequenceKeypoint.new(1, Color3.fromRGB(163, 163, 163))
                 }
                 })                
 
@@ -1270,7 +1201,7 @@ local Library = {
                     Rotation = 90,
                     Color = ColorSequence.new{
                     ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
-                    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
+                    ColorSequenceKeypoint.new(1, Color3.fromRGB(163, 163, 163))
                 }
                 })
                 
@@ -1850,7 +1781,7 @@ local Library = {
                     Rotation = 90,
                     Color = ColorSequence.new{
                     ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
-                    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
+                    ColorSequenceKeypoint.new(1, Color3.fromRGB(163, 163, 163))
                 }
                 })
                 
@@ -2262,8 +2193,8 @@ local Library = {
                     Parent = Items["Watermark"].Instance,
                     PaddingTop = UDim.new(0, 10),
                     PaddingBottom = UDim.new(0, 10),
-                    PaddingRight = UDim.new(0, 9),
-                    PaddingLeft = UDim.new(0, 9)
+                    PaddingRight = UDim.new(0, 10),
+                    PaddingLeft = UDim.new(0, 10)
                 })
                 
                 Items["Liner"] = Library:Create("Frame", {
@@ -2281,7 +2212,7 @@ local Library = {
                     Parent = Items["Liner"].Instance,
                     ImageColor3 = Library.Theme["Accent"],
                     ScaleType = Enum.ScaleType.Slice,
-                    ImageTransparency = 0.88,
+                    ImageTransparency = 0.800000011920929,
                     Size = UDim2.new(1, 25, 1, 25),
                     AnchorPoint = Vector2.new(0.5, 0.5),
                     Image = "http://www.roblox.com/asset/?id=18245826428",
@@ -2739,7 +2670,6 @@ local Library = {
                     BackgroundColor3 = Color
                 })
         
-                Library:AddCorner(Items["Notification"], 5)
                 Notification.Items = Items
             end
         
@@ -2840,15 +2770,13 @@ local Library = {
                     Parent = Library.Holder.Instance,
                     AnchorPoint = Vector2.new(0.5, 0.5),
                     Position = UDim2.new(0.5, 0, 0.5, 0),
-                    Size = Params.Size or Params.size or UDim2.fromOffset(620, 455),
+                    Size = UDim2.new(0, 613, 0, 453),
                     BorderSizePixel = 0,
                     BackgroundColor3 = Library.Theme["Border"]
                 }):AddToTheme({BackgroundColor3 = 'Border'})
 
-                Library:AddCorner(Items["Outline"], 8)
-
                 Items["Outline"]:MakeDraggable()
-                Items["Outline"]:MakeResizeable(Params.MinimumSize or Vector2.new(560, 410))
+                Items["Outline"]:MakeResizeable(Vector2.new(Items["Outline"].Instance.AbsoluteSize.X, Items["Outline"].Instance.AbsoluteSize.Y))
                 
                 Items["Outline2"] = Library:Create("Frame", {
                     Name = "\0",
@@ -2867,9 +2795,6 @@ local Library = {
                     BorderSizePixel = 0,
                     BackgroundColor3 = Library.Theme["Background"]
                 }):AddToTheme({BackgroundColor3 = 'Background'})
-
-                Library:AddCorner(Items["Outline2"], 8)
-                Library:AddCorner(Items["Background"], 7)
                 
                 --[[
                 Items["Title"] = Library:Create("TextLabel", {
@@ -2890,7 +2815,7 @@ local Library = {
                 Items["Liner"] = Library:Create("Frame", {
                     Name = "\0",
                     Parent = Items["Background"].Instance,
-                    Size = UDim2.new(1, 0, 0, 1),
+                    Size = UDim2.new(1, 0, 0, 2),
                     Position = UDim2.new(0, 0, 0, 30),
                     ZIndex = 2,
                     BorderSizePixel = 0,
@@ -2902,7 +2827,7 @@ local Library = {
                     Parent = Items["Liner"].Instance,
                     ImageColor3 = Library.Theme["Accent"],
                     ScaleType = Enum.ScaleType.Slice,
-                    ImageTransparency = 0.88,
+                    ImageTransparency = 0.800000011920929,
                     Size = UDim2.new(1, 8, 1, 8),
                     AnchorPoint = Vector2.new(0.5, 0.5),
                     Image = "http://www.roblox.com/asset/?id=18245826428",
@@ -3044,33 +2969,91 @@ local Library = {
                 end
             end)
 
-            -- A single label stays crisp at every resolution; the old per-letter wave
-            -- introduced uneven spacing and shimmer while the window moved.
-            Items["Title"] = Library:Create("TextLabel", {
-                Name = "\0",
-                Parent = Items["Background"].Instance,
-                Position = UDim2.fromOffset(10, 0),
-                Size = UDim2.new(0.48, -10, 0, 30),
-                BackgroundTransparency = 1,
-                BorderSizePixel = 0,
-                FontFace = Library.Font,
-                TextSize = Library.FontSize,
-                Text = Window.Name,
-                TextXAlignment = Enum.TextXAlignment.Left,
-                TextYAlignment = Enum.TextYAlignment.Center,
-                TextTruncate = Enum.TextTruncate.AtEnd,
-                TextColor3 = Library.Theme["Text"]
-            }):AddToTheme({TextColor3 = "Text"})
+            -- the title animation logic below
+            local OffsetX = 8
+            local OffsetY = 12
+            local Width = 7 -- this would be the gap between each letter
 
-            -- Small brand accent instead of animating every character.
-            Items["TitleAccent"] = Library:Create("Frame", {
-                Name = "\0",
-                Parent = Items["Background"].Instance,
-                Position = UDim2.fromOffset(0, 8),
-                Size = UDim2.fromOffset(2, 14),
-                BorderSizePixel = 0,
-                BackgroundColor3 = Library.Theme["Accent"]
-            }):AddToTheme({BackgroundColor3 = "Accent"})
+            local WaveHeight = 4
+            local WaveSpeed =  2.5
+            local WaveSpacing = 0.25
+
+            local Letters = { } -- try not to make the title too long since every letter is created individually for the animation
+            local VisualIndex = 0
+
+            for StartByte, EndByte in utf8.graphemes(Window.Name) do
+                VisualIndex += 1
+
+                local Letter = Window.Name:sub(StartByte, EndByte)
+                local LetterWidth = Width
+
+                if utf8.len(Letter) and utf8.len(Letter) > 1 then
+                    LetterWidth = Width * 2
+                elseif string.byte(Letter, 1) and string.byte(Letter, 1) >= 128 then
+                    LetterWidth = Width * 2
+                end
+
+                local PreviousX = OffsetX
+
+                if VisualIndex > 1 then
+                    local Previous = Letters[VisualIndex - 1]
+                    PreviousX = Previous.X + Previous.Width
+                end
+
+                local NewLetter = Library:Create("TextLabel",{
+                    Name = "\0",
+                    Size = UDim2.new(0, LetterWidth, 0, 0),
+                    Position = UDim2.new(0, PreviousX, 0, OffsetY),
+                    BackgroundTransparency = 1,
+                    BorderSizePixel = 0,
+                    Text = Letter,
+                    FontFace = Library.Font,
+                    TextSize = Library.FontSize,
+                    Parent = Items["Background"].Instance
+                }):AddToTheme({TextColor3 = 'Accent'})
+
+                Letters[VisualIndex] = {
+                    LetterInstance = NewLetter,
+                    X = PreviousX,
+                    Y = OffsetY,
+                    Width = LetterWidth
+                }
+            end
+
+            local TitleAnimationElapsed = 0
+
+            Library:Connect(RunService.RenderStepped, function(DeltaT)
+                if not Window.IsOpen then
+                    TitleAnimationElapsed = 0
+                    return
+                end
+
+                TitleAnimationElapsed += DeltaT
+
+                if TitleAnimationElapsed < (1 / 30) then
+                    return
+                end
+
+                TitleAnimationElapsed %= (1 / 30)
+
+                local Tick = os.clock()
+
+                for Index, Value in Letters do
+                    local OffsetY =
+                        math.sin(
+                            (Tick * WaveSpeed)
+                            - (Index * WaveSpacing)
+                        ) * WaveHeight
+
+                    Value.LetterInstance.Instance.Position =
+                        UDim2.new(
+                            0,
+                            Value.X,
+                            0,
+                            Value.Y + OffsetY
+                        )
+                end
+            end)
 
             Window:Center()
 
@@ -3152,7 +3135,7 @@ local Library = {
                     Parent = Items["Page"].Instance,
                     FillDirection = Enum.FillDirection.Horizontal,
                     HorizontalFlex = Enum.UIFlexAlignment.Fill,
-                    Padding = UDim.new(0, 9),
+                    Padding = UDim.new(0, 11),
                     SortOrder = Enum.SortOrder.LayoutOrder,
                     VerticalFlex = Enum.UIFlexAlignment.Fill
                 })
@@ -3180,9 +3163,9 @@ local Library = {
                 Library:Create("UIPadding", {
                     Name = "\0",
                     Parent = Items["LeftColumn"].Instance,
-                    PaddingTop = UDim.new(0, 16),
+                    PaddingTop = UDim.new(0, 19),
                     PaddingBottom = UDim.new(0, 15),
-                    PaddingRight = UDim.new(0, 3),
+                    PaddingRight = UDim.new(0, 2),
                     PaddingLeft = UDim.new(0, 10)
                 })                
 
@@ -3209,10 +3192,10 @@ local Library = {
                 Library:Create("UIPadding", {
                     Name = "\0",
                     Parent = Items["RightColumn"].Instance,
-                    PaddingTop = UDim.new(0, 16),
+                    PaddingTop = UDim.new(0, 19),
                     PaddingBottom = UDim.new(0, 15),
                     PaddingRight = UDim.new(0, 10),
-                    PaddingLeft = UDim.new(0, 3)
+                    PaddingLeft = UDim.new(0, 2)
                 })
 
                 Page.ColumnsData[1] = Items["LeftColumn"]
@@ -3317,7 +3300,7 @@ local Library = {
                     Name = "\0",
                     Parent = Items["Section"].Instance,
                     ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-                    LineJoinMode = Enum.LineJoinMode.Round,
+                    LineJoinMode = Enum.LineJoinMode.Miter,
                     Color = Library.Theme["Outline"]
                 }):AddToTheme({Color = 'Outline'})
                 
@@ -3325,7 +3308,7 @@ local Library = {
                     Name = "\0",
                     Parent = Items["Section"].Instance,
                     ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-                    LineJoinMode = Enum.LineJoinMode.Round,
+                    LineJoinMode = Enum.LineJoinMode.Miter,
                     Color = Library.Theme["Border"],
                     BorderOffset = UDim.new(0, 1)
                 }):AddToTheme({Color = 'Border'})
@@ -3356,8 +3339,8 @@ local Library = {
                     Name = "\0",
                     Parent = Items["Section"].Instance,
                     BackgroundTransparency = 1,
-                    Position = UDim2.new(0, 9, 0, 11),
-                    Size = UDim2.new(1, -18, 0, 0),
+                    Position = UDim2.new(0, 8, 0, 10),
+                    Size = UDim2.new(1, -16, 0, 0),
                     BorderSizePixel = 0,
                     AutomaticSize = Enum.AutomaticSize.Y
                 })
@@ -3375,7 +3358,6 @@ local Library = {
                     PaddingBottom = UDim.new(0, 8)
                 })                
 
-                Library:AddCorner(Items["Section"], 8)
                 Section.Items = Items
             end 
 
@@ -3450,7 +3432,7 @@ local Library = {
                     Rotation = 90,
                     Color = ColorSequence.new{
                     ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
-                    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
+                    ColorSequenceKeypoint.new(1, Color3.fromRGB(163, 163, 163))
                 }
                 })
                 
@@ -3689,7 +3671,7 @@ local Library = {
                     Rotation = 90,
                     Color = ColorSequence.new{
                     ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
-                    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
+                    ColorSequenceKeypoint.new(1, Color3.fromRGB(163, 163, 163))
                 }
                 })
                 
@@ -3718,9 +3700,6 @@ local Library = {
                     BackgroundColor3 = Library.Theme["Accent"]
                 }):AddToTheme({BackgroundColor3 = 'Accent'})                
 
-                Library:AddCorner(Items["Button"], 4)
-                Library:AddCorner(Items["Inline"], 3)
-                Library:AddCorner(Items["RealButton"], 3)
                 Button.Items = Items
             end
 
@@ -3850,7 +3829,7 @@ local Library = {
                     Rotation = 90,
                     Color = ColorSequence.new{
                     ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
-                    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
+                    ColorSequenceKeypoint.new(1, Color3.fromRGB(163, 163, 163))
                 }
                 })
                 
@@ -3876,7 +3855,7 @@ local Library = {
                     Rotation = 90,
                     Color = ColorSequence.new{
                     ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
-                    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
+                    ColorSequenceKeypoint.new(1, Color3.fromRGB(163, 163, 163))
                 }
                 })
                 
@@ -3895,9 +3874,6 @@ local Library = {
                     AutomaticSize = Enum.AutomaticSize.XY
                 }):AddToTheme({TextColor3 = 'Inactive Text'})                
 
-                Library:AddCorner(Items["RealSliderOutline"], 3)
-                Library:AddCorner(Items["RealSlider"], 2)
-                Library:AddCorner(Items["Accent"], 2)
                 Slider.Items = Items 
             end
 
@@ -4089,7 +4065,7 @@ local Library = {
                     Rotation = 90,
                     Color = ColorSequence.new{
                     ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
-                    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
+                    ColorSequenceKeypoint.new(1, Color3.fromRGB(163, 163, 163))
                 }
                 })
                 
@@ -4171,10 +4147,6 @@ local Library = {
                     SortOrder = Enum.SortOrder.LayoutOrder
                 })
 
-                Library:AddCorner(Items["RealDropdownOutline"], 4)
-                Library:AddCorner(Items["Inline"], 3)
-                Library:AddCorner(Items["RealDropdown"], 3)
-                Library:AddCorner(Items["OptionHolder"], 5)
                 Dropdown.Items = Items 
             end
 
@@ -4650,7 +4622,7 @@ local Library = {
                     Rotation = 90,
                     Color = ColorSequence.new{
                         ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
-                        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
+                        ColorSequenceKeypoint.new(1, Color3.fromRGB(163, 163, 163))
                     }
                 })
 
@@ -4706,7 +4678,7 @@ local Library = {
                     Rotation = 90,
                     Color = ColorSequence.new{
                         ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
-                        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
+                        ColorSequenceKeypoint.new(1, Color3.fromRGB(163, 163, 163))
                     }
                 })
 
@@ -5238,7 +5210,7 @@ local Library = {
                     Rotation = 90,
                     Color = ColorSequence.new{
                     ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
-                    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
+                    ColorSequenceKeypoint.new(1, Color3.fromRGB(163, 163, 163))
                 }
                 })
                 
@@ -5262,9 +5234,6 @@ local Library = {
                     AutomaticSize = Enum.AutomaticSize.Y
                 }):AddToTheme({TextColor3 = 'Text', PlaceholderColor3 = 'Inactive Text'})                
 
-                Library:AddCorner(Items["Outline"], 7)
-                Library:AddCorner(Items["Inline"], 3)
-                Library:AddCorner(Items["Background"], 5)
                 Textbox.Items = Items
             end
 
