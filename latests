@@ -22,6 +22,7 @@ local Mouse = cloneref(LocalPlayer:GetMouse())
 
 local Library = { 
     Flags = { },
+    IgnoredConfigFlags = { },
     MenuKeybind = tostring(Enum.KeyCode.Delete), -- has to be a string
 
     RootDirectory = "siff",
@@ -90,6 +91,30 @@ local Library = {
 
     local Flags = Library.Flags 
     local SetFlags = Library.SetFlags
+
+    function Library:RegisterConfigFlag(Flag, Params)
+        if type(Flag) ~= "string" or Flag == "" then
+            return
+        end
+
+        Params = Params or {}
+
+        local Ignore =
+            Params.IgnoreConfig == true
+            or Params.ignoreConfig == true
+            or Params.NoConfig == true
+            or Params.noConfig == true
+            or Params.SaveConfig == false
+            or Params.saveConfig == false
+
+        if Ignore then
+            Library.IgnoredConfigFlags[Flag] = true
+        end
+    end
+
+    function Library:IsConfigIgnored(Flag)
+        return Library.IgnoredConfigFlags[Flag] == true
+    end
 
 
 
@@ -818,23 +843,82 @@ local Library = {
         return math.floor(Number * Multiplier) / Multiplier
     end
 
+    local function CopyConfigValue(Value, Seen)
+        local ValueType = type(Value)
+
+        if ValueType == "nil"
+            or ValueType == "boolean"
+            or ValueType == "number"
+            or ValueType == "string"
+        then
+            return Value
+        end
+
+        if ValueType ~= "table" then
+            return nil
+        end
+
+        Seen = Seen or {}
+
+        if Seen[Value] then
+            return nil
+        end
+
+        Seen[Value] = true
+
+        if Value.Key then
+            Seen[Value] = nil
+            return {
+                Key = tostring(Value.Key),
+                Mode = Value.Mode
+            }
+        end
+
+        if Value.Color then
+            Seen[Value] = nil
+            return {
+                Color = "#" .. tostring(Value.HexValue),
+                Alpha = Value.Alpha
+            }
+        end
+
+        local Copy = {}
+
+        for Key, Item in Value do
+            local SafeKeyType = type(Key)
+
+            if SafeKeyType == "string" or SafeKeyType == "number" then
+                local CopiedItem = CopyConfigValue(Item, Seen)
+
+                if CopiedItem ~= nil then
+                    Copy[Key] = CopiedItem
+                end
+            end
+        end
+
+        Seen[Value] = nil
+        return Copy
+    end
+
     Library.GetConfig = function(Self)
         local Config = { }
 
         local Success, Result = Library:SafeCall(function()
-            for Index, Value in Library.Flags do 
-                if type(Value) == "table" and Value.Key then
-                    Config[Index] = {Key = tostring(Value.Key), Mode = Value.Mode}
-                elseif type(Value) == "table" and Value.Color then
-                    Config[Index] = {Color = "#" .. Value.HexValue, Alpha = Value.Alpha}
-                else
-                    Config[Index] = Value
+            for Index, Value in Library.Flags do
+                if Library:IsConfigIgnored(Index) then
+                    continue
+                end
+
+                local CopiedValue = CopyConfigValue(Value)
+
+                if CopiedValue ~= nil then
+                    Config[Index] = CopiedValue
                 end
             end
         end)
 
         if not Success then
-            warn("Failed to get config:\n"..Result)
+            warn("Failed to get config:\n" .. tostring(Result))
             return
         end
 
@@ -845,7 +929,11 @@ local Library = {
         local Decoded = HttpService:JSONDecode(Config)
 
         local Success, Result = Library:SafeCall(function()
-            for Index, Value in Decoded do 
+            for Index, Value in Decoded do
+                if Library:IsConfigIgnored(Index) then
+                    continue
+                end
+
                 local SetFunction = Library.SetFlags[Index]
 
                 if not SetFunction then
@@ -3510,6 +3598,7 @@ local Library = {
             end)
 
             Library:RegisterToggleGroup(Toggle)
+            Library:RegisterConfigFlag(Toggle.Flag, Params)
 
             SetFlags[Toggle.Flag] = function(Value)
                 Library:SetToggleGroupValue(
@@ -3881,6 +3970,7 @@ local Library = {
             end)
 
             Slider:Set(Slider.Default)
+            Library:RegisterConfigFlag(Slider.Flag, Params)
 
             SetFlags[Slider.Flag] = function(Value)
                 Slider:Set(Value)
@@ -4435,6 +4525,7 @@ local Library = {
             end
 
             Dropdown:Set(Dropdown.Default)
+            Library:RegisterConfigFlag(Dropdown.Flag, Params)
 
             SetFlags[Dropdown.Flag] = function(Value)
                 Dropdown:Set(Value)
@@ -4895,6 +4986,7 @@ local Library = {
 
             if List.Selectable then
                 List:Set(List.Default)
+                Library:RegisterConfigFlag(List.Flag, Params)
 
                 SetFlags[List.Flag] = function(Value)
                     List:Set(Value)
@@ -5217,6 +5309,7 @@ local Library = {
             end
 
             Textbox:Set(Textbox.Default)
+            Library:RegisterConfigFlag(Textbox.Flag, Params)
 
             SetFlags[Textbox.Flag] = function(Value)
                 Textbox:Set(Value)
